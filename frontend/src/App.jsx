@@ -12,7 +12,8 @@ function App() {
     institutionAddress: '',
     roleInInstitution: '',
     interestedInPilot: false,
-    willingToPay: false
+    willingToPay: false,
+    comments: ''
   })
   const [errors, setErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -87,7 +88,8 @@ function App() {
             institution_address: formData.institutionAddress,
             role_in_institution: formData.roleInInstitution,
             interested_in_pilot: formData.interestedInPilot,
-            willing_to_pay: formData.willingToPay
+            willing_to_pay: formData.willingToPay,
+            comments: formData.comments
           }
         ])
       
@@ -102,7 +104,8 @@ function App() {
         institutionAddress: '',
         roleInInstitution: '',
         interestedInPilot: false,
-        willingToPay: false
+        willingToPay: false,
+        comments: ''
       })
     } catch (error) {
       console.error('Submission error:', error)
@@ -446,6 +449,21 @@ function App() {
                     <option value="Other">Other</option>
                   </select>
                   {errors.roleInInstitution && <p className="mt-1 text-sm text-red-600">{errors.roleInInstitution}</p>}
+                </div>
+
+                <div>
+                  <label htmlFor="comments" className="block text-sm font-medium text-gray-700 mb-2">
+                    Comments (Optional)
+                  </label>
+                  <textarea
+                    id="comments"
+                    name="comments"
+                    value={formData.comments}
+                    onChange={handleInputChange}
+                    rows="4"
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all resize-none"
+                    placeholder="Any additional information or questions you'd like to share..."
+                  />
                 </div>
 
                 <div className="space-y-4">
