@@ -125,10 +125,10 @@ function App() {
             <p className="text-xl md:text-2xl mb-8 text-blue-100 max-w-3xl mx-auto">
               Save thousands of hours, eliminate paper costs, and give your faculty time to focus on what matters most teaching.
             </p>
-            <a href="#register" className="inline-flex items-center gap-2 bg-white text-indigo-600 px-8 py-4 rounded-full font-semibold text-lg hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl">
+            {/* <a href="#register" className="inline-flex items-center gap-2 bg-white text-indigo-600 px-8 py-4 rounded-full font-semibold text-lg hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl">
               Get Started Today
               <ArrowRight className="w-5 h-5" />
-            </a>
+            </a> */}
           </div>
         </div>
       </section>
@@ -252,9 +252,6 @@ function App() {
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">{item.title}</h3>
                 <p className="text-gray-600">{item.desc}</p>
-                {index < 3 && (
-                  <div className="hidden md:block absolute top-8 left-full w-full h-0.5 bg-indigo-200 -translate-x-1/2"></div>
-                )}
               </div>
             ))}
           </div>
@@ -286,7 +283,7 @@ function App() {
                   </li>
                   <li className="flex items-start gap-3">
                     <X className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-gray-700">Paper & printing costs: <strong>$2,000–$5,000 per semester</strong></span>
+                    <span className="text-gray-700">Paper & printing costs: <strong>5,000 ETB - 10,000 ETB per semester</strong></span>
                   </li>
                 </ul>
               </div>
@@ -304,7 +301,7 @@ function App() {
                   </li>
                   <li className="flex items-start gap-3">
                     <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-gray-700">Paper & printing savings: <strong>$2,000–$5,000 per semester</strong></span>
+                    <span className="text-gray-700">Paper & printing savings: <strong>5,000 ETB - 10,000 ETB per semester</strong></span>
                   </li>
                 </ul>
               </div>
