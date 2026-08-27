@@ -520,6 +520,25 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h3 className="text-2xl font-bold mb-4">Smart Exam Taker</h3>
           <p className="text-gray-400 mb-6">AI-Assisted Digital Examination Platform</p>
+          
+          <div className="flex flex-col md:flex-row justify-center items-center gap-6 mb-8 text-gray-300">
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400">Phone:</span>
+              <span>
+                <a href="tel:+251924606710" className="hover:text-indigo-400 transition-colors">+251924606710</a> /
+                <a href="tel:+251922583488" className="hover:text-indigo-400 transition-colors">+251922583488</a>
+                </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400">Email:</span>
+              <a href="mailto:yopeman318@gmail.com" className="hover:text-indigo-400 transition-colors">yopeman318@gmail.com</a>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400">Telegram:</span>
+              <a href="https://t.me/yope_man" target="_blank" rel="noopener noreferrer" className="hover:text-indigo-400 transition-colors">@yope_man</a>
+            </div>
+          </div>
+          
           <p className="text-gray-500 text-sm">
             © 2024 Smart Exam Taker. All rights reserved.
           </p>
