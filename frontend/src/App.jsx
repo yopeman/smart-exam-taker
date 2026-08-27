@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from './lib/supabaseClient'
 import { CheckCircle, Clock, DollarSign, Shield, Zap, Users, ArrowRight, Check, X } from 'lucide-react'
 import './App.css'
@@ -537,6 +538,12 @@ function App() {
               <span className="text-gray-400">Telegram:</span>
               <a href="https://t.me/yope_man" target="_blank" rel="noopener noreferrer" className="hover:text-indigo-400 transition-colors">@yope_man</a>
             </div>
+          </div>
+          
+          <div className="mb-6">
+            <Link to="/login" className="text-indigo-400 hover:text-indigo-300 transition-colors text-sm">
+              Admin Login
+            </Link>
           </div>
           
           <p className="text-gray-500 text-sm">
