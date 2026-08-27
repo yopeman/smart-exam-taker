@@ -33,35 +33,3 @@ CREATE TRIGGER update_school_registrations_updated_at
   BEFORE UPDATE ON school_registrations
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
-
--- Add Row Level Security (RLS)
-ALTER TABLE school_registrations ENABLE ROW LEVEL SECURITY;
-
--- Create policy to allow anyone to insert registrations (for the public form)
-CREATE POLICY "Allow public insert on school_registrations"
-  ON school_registrations
-  FOR INSERT
-  TO anon
-  WITH CHECK (true);
-
--- Create policy to allow service role to read all registrations
-CREATE POLICY "Allow service role to read all school_registrations"
-  ON school_registrations
-  FOR SELECT
-  TO service_role
-  USING (true);
-
--- Create policy to allow service role to update registrations
-CREATE POLICY "Allow service role to update school_registrations"
-  ON school_registrations
-  FOR UPDATE
-  TO service_role
-  USING (true)
-  WITH CHECK (true);
-
--- Create policy to allow service role to delete registrations
-CREATE POLICY "Allow service role to delete school_registrations"
-  ON school_registrations
-  FOR DELETE
-  TO service_role
-  USING (true);

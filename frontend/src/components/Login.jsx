@@ -98,7 +98,6 @@ const Login = () => {
               {loading ? 'Signing in...' : (
                 <>
                   Sign In
-                  <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>
@@ -106,7 +105,7 @@ const Login = () => {
 
           <div className="mt-6 text-center">
             <Link to="/" className="text-indigo-600 hover:text-indigo-700 font-medium">
-              ← Back to Home
+              Back to Home
             </Link>
           </div>
         </div>
