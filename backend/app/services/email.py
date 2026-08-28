@@ -1,7 +1,10 @@
+import logging
 import smtplib
 from email.message import EmailMessage
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 def _build_message(to_email: str, subject: str, body: str) -> EmailMessage:
@@ -19,6 +22,24 @@ def send_email(to_email: str, subject: str, body: str) -> None:
         server.starttls()
         server.login(settings.EMAIL_USER, settings.EMAIL_PASS)
         server.send_message(msg)
+
+
+def send_invitation_email(to_email: str, school_name: str, expires_in_days: int) -> None:
+    link = f"{settings.FRONTEND_BASE_URL}/invitations"
+    subject = f"You've been invited to {school_name} on Smart Exam Taker"
+    body = (
+        f"Hi,\n\n"
+        f"You have been invited to join {school_name} as an instructor "
+        f"on Smart Exam Taker.\n"
+        f"Sign in with this email to accept or reject the invitation.\n\n"
+        f"Invitation link: {link}\n\n"
+        f"This invitation expires in {expires_in_days} days.\n\n"
+        f"Smart Exam Taker"
+    )
+    try:
+        send_email(to_email, subject, body)
+    except Exception as exc:  # pragma: no cover - email is best effort
+        logger.warning("Failed to send instructor invitation email: %s", exc)
 
 
 def send_verification_email(to_email: str, token: str) -> None:

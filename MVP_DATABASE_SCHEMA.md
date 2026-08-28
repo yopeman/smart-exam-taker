@@ -28,12 +28,12 @@
 - school id
 - instructor email
 - max exams
+- expired at
 - invited at
 - accepted at
 - rejected at
-- expired at
 - canceled at
-- status: pending, accepted, rejected, canceled, expired
+- status: pending (default), accepted, rejected, canceled, expired
 - created at
 - updated at
 - deleted at
