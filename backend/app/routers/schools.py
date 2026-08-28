@@ -1,6 +1,7 @@
+import base64
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -9,12 +10,44 @@ from app.core.security import get_current_user
 from app.models import School, User
 from app.schemas.school import (
     MessageResponse,
-    SchoolCreateRequest,
     SchoolResponse,
     SchoolUpdateRequest,
 )
 
+_ALLOWED_LOGO_TYPES = {
+    "image/png": "png",
+    "image/jpeg": "jpeg",
+    "image/jpg": "jpg",
+    "image/gif": "gif",
+    "image/webp": "webp",
+}
+_MAX_LOGO_BYTES = 5 * 1024 * 1024
+
 router = APIRouter(prefix="/schools", tags=["schools"])
+
+
+def _resolve_logo_url(
+    logo_url: str | None, logo: UploadFile | None
+) -> str | None:
+    if logo is not None and logo.filename:
+        if logo.content_type not in _ALLOWED_LOGO_TYPES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Logo must be a PNG, JPEG, GIF, or WEBP image",
+            )
+        data = logo.file.read()
+        if len(data) > _MAX_LOGO_BYTES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Logo image must be 5 MB or smaller",
+            )
+        encoded = base64.b64encode(data).decode("utf-8")
+        return f"data:{logo.content_type};base64,{encoded}"
+
+    if logo_url:
+        return logo_url
+
+    return None
 
 
 def _get_owned_school(school_id: str, user: User, db: Session) -> School:
@@ -29,22 +62,29 @@ def _get_owned_school(school_id: str, user: User, db: Session) -> School:
 
 @router.post("", response_model=SchoolResponse, status_code=status.HTTP_201_CREATED)
 def create_school(
-    payload: SchoolCreateRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    name: str = Form(..., min_length=1, max_length=150),
+    location: str | None = Form(default=None, max_length=255),
+    logo_url: str | None = Form(default=None),
+    primary_color: str | None = Form(default=None, max_length=7),
+    secondary_color: str | None = Form(default=None, max_length=7),
+    logo: UploadFile | None = File(default=None),
 ):
+    resolved_logo = _resolve_logo_url(logo_url, logo)
     school = School(
         owner_id=current_user.id,
-        name=payload.name,
-        location=payload.location,
-        logo_url=str(payload.logo_url) if payload.logo_url else None,
-        primary_color=payload.primary_color,
-        secondary_color=payload.secondary_color,
+        name=name,
+        location=location,
+        logo_url=resolved_logo,
+        primary_color=primary_color,
+        secondary_color=secondary_color,
     )
     db.add(school)
     db.commit()
     db.refresh(school)
     return school
+
 
 
 @router.get("", response_model=list[SchoolResponse])
