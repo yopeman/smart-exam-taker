@@ -1,8 +1,8 @@
 import { Navigate } from 'react-router-dom'
-import { useAuth } from '../../contexts/AuthContext'
+import { useInstructorAuth } from '../contexts/InstructorAuthContext'
 
-const ProtectedRoute = ({ children }) => {
-  const { user, loading } = useAuth()
+const InstructorProtectedRoute = ({ children }) => {
+  const { user, loading } = useInstructorAuth()
 
   if (loading) {
     return (
@@ -13,10 +13,10 @@ const ProtectedRoute = ({ children }) => {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />
+    return <Navigate to="/instructor/login" replace />
   }
 
   return children
 }
 
-export default ProtectedRoute
+export default InstructorProtectedRoute
