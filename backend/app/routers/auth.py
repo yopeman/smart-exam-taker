@@ -128,17 +128,6 @@ def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db
     )
 
 
-@router.get("/reset-password")
-def reset_password_form(
-    token: str = Query(...),
-):
-    # The reset password flow needs a fresh password, so this route displays
-    # the new-password form on the frontend. The backend applies the change
-    # via the POST endpoint below.
-    url = f"{settings.FRONTEND_BASE_URL}/auth/reset-password?token={token}"
-    return RedirectResponse(url=url)
-
-
 @router.post("/reset-password", response_model=MessageResponse)
 def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
     try:

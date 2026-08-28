@@ -43,7 +43,7 @@ def main():
     r = register()
     print(r.status_code, r.json())
     assert r.status_code == 201
-    token_in_mail = sent[-1][2].split("token=")[1].split("&")[0]
+    token_in_mail = sent[-1][2].split("token=")[1].split()[0]
     user_id = r.json()["id"]
     assert r.json()["is_verified"] is False
 
@@ -101,7 +101,7 @@ def main():
     r = client.post(f"{base}/forgot-password", json={"email": "test@example.com"})
     print(r.status_code, r.json())
     assert r.status_code == 200
-    reset_token = sent[-1][2].split("token=")[1].split("&")[0]
+    reset_token = sent[-1][2].split("token=")[1].split()[0]
 
     print("== reset password ==")
     r = client.post(f"{base}/reset-password", json={"token": reset_token, "new_password": "resetval123"})
