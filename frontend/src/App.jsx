@@ -542,7 +542,7 @@ function App() {
           
           <div className="mb-6">
             <Link to="/login" className="text-indigo-400 hover:text-indigo-300 transition-colors text-sm">
-              Admin Login
+              Login
             </Link>
           </div>
           
