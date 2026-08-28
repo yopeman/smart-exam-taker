@@ -49,7 +49,7 @@
 - year of study
 - semester
 - section
-- document url
+- document content
 - questions {JSON}
 - duration minutes
 - started by
@@ -57,7 +57,7 @@
 - started at
 - completed at
 - cancelled at
-- status: draft, scheduled, started, completed, cancelled
+- status: draft, submitted, scheduled, started, completed, cancelled
 - created at
 - updated at
 - deleted at

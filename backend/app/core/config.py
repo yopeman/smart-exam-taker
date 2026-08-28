@@ -23,5 +23,8 @@ class Settings(BaseSettings):
     EMAIL_PASS: str = ""
     EMAIL_FROM: str = "Smart Exam Taker <support@sexam.com>"
 
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "openai/gpt-oss-120b"
+
 
 settings = Settings()

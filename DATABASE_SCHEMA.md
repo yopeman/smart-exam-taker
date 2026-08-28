@@ -102,7 +102,7 @@
 - year of study
 - semester
 - section
-- document url
+- document content
 - questions {JSON}
 - duration minutes
 - started by

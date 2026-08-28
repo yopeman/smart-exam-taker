@@ -1,3 +1,4 @@
+from app.models.exam import Exam, ExamStatus
 from app.models.instructor_invitation import (
     INVITATION_EXPIRE_DAYS,
     InstructorInvitation,
@@ -13,4 +14,6 @@ __all__ = [
     "InstructorInvitation",
     "InvitationStatus",
     "INVITATION_EXPIRE_DAYS",
+    "Exam",
+    "ExamStatus",
 ]
