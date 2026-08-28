@@ -540,7 +540,7 @@ function LandingPage() {
           </div>
           
           <div className="mb-6">
-            <Link to="/login" className="text-indigo-400 hover:text-indigo-300 transition-colors text-sm">
+            <Link to="/admin/sb/login" className="text-indigo-400 hover:text-indigo-300 transition-colors text-sm">
               Login
             </Link>
           </div>

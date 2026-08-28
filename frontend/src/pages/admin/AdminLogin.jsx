@@ -18,7 +18,7 @@ const Login = () => {
 
     try {
       await login(email, password)
-      navigate('/schools')
+      navigate('/admin/sb/schools')
     } catch (err) {
       setError(err.message || 'Failed to login. Please check your credentials.')
     } finally {
