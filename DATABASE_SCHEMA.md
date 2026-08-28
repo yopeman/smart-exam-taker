@@ -95,6 +95,7 @@
 - id
 - school id
 - instructor id
+- code
 - title
 - description
 - department
