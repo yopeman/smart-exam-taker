@@ -36,6 +36,7 @@ class ExamAttempt(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     exam_id: Mapped[str] = mapped_column(String(36), index=True)
+    student_id: Mapped[str] = mapped_column(String(36), index=True)
 
     student_first_name: Mapped[str] = mapped_column(String(150))
     student_last_name: Mapped[str] = mapped_column(String(150))

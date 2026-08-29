@@ -12,7 +12,7 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
-from app.models import User
+from app.models import User, UserRole
 from app.schemas.user import (
     ForgotPasswordRequest,
     LoginRequest,
@@ -34,10 +34,18 @@ def register(payload: RegisterRequest, db: Session) -> User:
             detail="An account with this email already exists",
         )
 
+    if payload.role == UserRole.admin:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot self-register as admin",
+        )
+    role = payload.role or UserRole.instructor
+
     user = User(
         name=payload.name,
         email=payload.email.lower(),
         password=hash_password(payload.password),
+        role=role,
     )
     db.add(user)
     db.commit()

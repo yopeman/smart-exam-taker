@@ -4,7 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import AttemptStatus, Exam, ExamAttempt, ExamStatus, User
+from app.models import AttemptStatus, Exam, ExamAttempt, ExamStatus, User, UserRole
 from app.schemas.attempt import StartAttemptRequest
 from app.services import face
 from app.services.grading_queue import enqueue_attempt_grading
@@ -23,8 +23,15 @@ def start_attempt(
     payload: StartAttemptRequest,
     face_filename: str | None,
     face_content: bytes,
+    user: User,
     db: Session,
 ) -> ExamAttempt:
+    if user.role != UserRole.student:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only students can start an exam attempt",
+        )
+
     exam = get_exam_by_code(payload.exam_code, db)
 
     if exam.status != ExamStatus.started:
@@ -48,6 +55,7 @@ def start_attempt(
 
     attempt = ExamAttempt(
         exam_id=exam.id,
+        student_id=user.id,
         student_first_name=payload.student_first_name,
         student_last_name=payload.student_last_name,
         student_id_number=payload.student_id_number,
@@ -68,11 +76,19 @@ def start_attempt(
     return attempt
 
 
-def submit_attempt(attempt_id: str, answers: dict, db: Session) -> ExamAttempt:
+def submit_attempt(
+    attempt_id: str, answers: dict, user: User, db: Session
+) -> ExamAttempt:
     attempt = db.get(ExamAttempt, attempt_id)
     if attempt is None or attempt.is_deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Exam attempt not found"
+        )
+
+    if user.role != UserRole.student or attempt.student_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not allowed to submit this attempt",
         )
 
     if attempt.status not in (AttemptStatus.in_progress, AttemptStatus.submitted):
@@ -92,12 +108,24 @@ def submit_attempt(attempt_id: str, answers: dict, db: Session) -> ExamAttempt:
     return attempt
 
 
-def get_attempt(attempt_id: str, db: Session) -> ExamAttempt:
+def get_attempt(attempt_id: str, user: User, db: Session) -> ExamAttempt:
     attempt = db.get(ExamAttempt, attempt_id)
     if attempt is None or attempt.is_deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Exam attempt not found"
         )
+
+    if user.role == UserRole.student:
+        if attempt.student_id != user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You are not allowed to view this attempt",
+            )
+    elif user.role == UserRole.instructor:
+        from app.controllers.exams import get_exam, require_exam_manager
+
+        exam = get_exam(attempt.exam_id, db)
+        require_exam_manager(exam, user, db)
     return attempt
 
 

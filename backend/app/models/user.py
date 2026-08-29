@@ -19,6 +19,7 @@ def _utcnow() -> datetime:
 class UserRole(str, enum.Enum):
     admin = "admin"
     instructor = "instructor"
+    student = "student"
 
 
 class User(Base):

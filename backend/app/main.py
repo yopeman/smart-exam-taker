@@ -16,14 +16,20 @@ def _ensure_schema() -> None:
     """Dev convenience: drop stale tables when a column was renamed/added.
 
     `create_all` never alters existing tables, so during MVP development an old
-    SQLite file would keep the previous schema. Drop only the `exams` table when
-    it is missing the current `document_content` column, then recreate everything.
+    SQLite file would keep the previous schema. Drop a table when it is missing a
+    column introduced after it was first created, then recreate everything.
     """
     inspector = inspect(engine)
-    if inspector.has_table("exams"):
-        columns = {col["name"] for col in inspector.get_columns("exams")}
-        if "document_content" not in columns:
-            Exam.__table__.drop(engine)
+    expected_columns = {
+        "exams": {"document_content"},
+        "exam_attempts": {"student_id"},
+        "users": {"role"},
+    }
+    for table, required in expected_columns.items():
+        if inspector.has_table(table):
+            columns = {col["name"] for col in inspector.get_columns(table)}
+            if not required.issubset(columns):
+                Base.metadata.tables[table].drop(engine)
     Base.metadata.create_all(bind=engine)
 
 

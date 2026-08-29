@@ -26,6 +26,7 @@ def start_attempt(
     semester: str | None = Form(default=None, max_length=50),
     section: str | None = Form(default=None, max_length=50),
     face: UploadFile | None = File(default=None),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     filename = face.filename if face is not None else None
@@ -45,6 +46,7 @@ def start_attempt(
         ),
         filename,
         content,
+        current_user,
         db,
     )
 
@@ -53,17 +55,21 @@ def start_attempt(
 def submit_attempt(
     attempt_id: str,
     payload: SubmitAttemptRequest,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return attempts_controller.submit_attempt(attempt_id, payload.answers, db)
+    return attempts_controller.submit_attempt(
+        attempt_id, payload.answers, current_user, db
+    )
 
 
 @router.get("/{attempt_id}", response_model=AttemptResponse)
 def get_attempt(
     attempt_id: str,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return attempts_controller.get_attempt(attempt_id, db)
+    return attempts_controller.get_attempt(attempt_id, current_user, db)
 
 
 @router.get("/exams/{exam_id}", response_model=list[AttemptResponse])

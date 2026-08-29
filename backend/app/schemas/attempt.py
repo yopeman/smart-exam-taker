@@ -26,6 +26,7 @@ class AttemptResponse(BaseModel):
 
     id: str
     exam_id: str
+    student_id: str
     student_first_name: str
     student_last_name: str
     student_id_number: str

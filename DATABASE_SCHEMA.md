@@ -5,7 +5,7 @@
 - name
 - email
 - password
-- role: admin, instructor
+- role: admin, instructor, student
 - is verified
 - created at
 - updated at
