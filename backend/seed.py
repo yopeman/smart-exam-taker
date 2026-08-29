@@ -64,7 +64,7 @@ def seed_users() -> tuple[dict[str, User], list[User]]:
     users: dict[str, User] = {}
 
     staff_specs = [
-        ("admin@yope.ai", "Site Admin", UserRole.admin),
+        ("instructor@yope.ai", "Site Admin", UserRole.instructor),
         ("instructor1@yope.ai", "Ian Instructor", UserRole.instructor),
         ("instructor2@yope.ai", "Iris Instructor", UserRole.instructor),
     ]
@@ -108,7 +108,7 @@ def seed_users() -> tuple[dict[str, User], list[User]]:
 
 def seed_schools(users: dict[str, User]) -> list[School]:
     schools: list[School] = []
-    admin = users["admin@yope.ai"]
+    admin = users["instructor@yope.ai"]
     for i in range(len(SCHOOL_NAMES)):
         school = School(
             owner_id=admin.id,
