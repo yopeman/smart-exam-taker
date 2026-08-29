@@ -59,7 +59,7 @@
 - started at
 - completed at
 - cancelled at
-- status: draft, submitted, scheduled, started, completed, cancelled
+- status: processing, draft, submitted, scheduled, started, completed, cancelled
 - created at
 - updated at
 - deleted at

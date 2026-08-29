@@ -112,7 +112,7 @@
 - started at
 - completed at
 - cancelled at
-- status: draft, scheduled, started, completed, cancelled
+- status: processing, draft, scheduled, started, completed, cancelled
 - created at
 - updated at
 - deleted at
