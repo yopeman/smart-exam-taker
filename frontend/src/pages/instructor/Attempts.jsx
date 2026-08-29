@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { apiClient } from '../../lib/apiClient'
 import DashboardNavbar from '../../components/DashboardNavbar'
+import { usePagination, Pagination } from '../../components/Pagination'
 import { ClipboardList, User as UserIcon, ChevronRight, X } from 'lucide-react'
 
 const ATTEMPT_STATUS_STYLES = {
@@ -337,6 +338,8 @@ export default function Attempts() {
     return attempts.filter((a) => a.exam_id === filterExam)
   }, [attempts, filterExam])
 
+  const pagination = usePagination(filtered)
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <DashboardNavbar title="Attempts" />
@@ -381,38 +384,49 @@ export default function Attempts() {
             <p className="text-gray-600 dark:text-gray-400">No attempts found</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {filtered.map((a) => {
-              const exam = examMap[a.exam_id]
-              return (
-                <button
-                  key={a.id}
-                  onClick={() => setDetail(a)}
-                  className="flex w-full items-center gap-4 rounded-lg bg-white p-4 text-left shadow hover:ring-2 hover:ring-indigo-500 dark:bg-gray-800"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold text-gray-900 dark:text-white">
-                      {exam?.title || 'Unknown exam'}
-                    </p>
-                    <p className="flex items-center gap-1 text-xs text-gray-500">
-                      <UserIcon className="h-3 w-3" />
-                      {a.student_first_name} {a.student_last_name} · {a.student_id_number}
-                    </p>
-                    <div className="mt-1 flex flex-wrap gap-2 text-xs text-gray-500">
-                      <span>{exam?.code}</span>
-                      {a.department && <span>{a.department}</span>}
-                      {a.section && <span>Sec {a.section}</span>}
-                      <span>
-                        Score: {a.total_score} ({a.objective_score}+{a.ai_score})
-                      </span>
+          <>
+            <div className="space-y-3">
+              {pagination.paged.map((a) => {
+                const exam = examMap[a.exam_id]
+                return (
+                  <button
+                    key={a.id}
+                    onClick={() => setDetail(a)}
+                    className="flex w-full items-center gap-4 rounded-lg bg-white p-4 text-left shadow hover:ring-2 hover:ring-indigo-500 dark:bg-gray-800"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold text-gray-900 dark:text-white">
+                        {exam?.title || 'Unknown exam'}
+                      </p>
+                      <p className="flex items-center gap-1 text-xs text-gray-500">
+                        <UserIcon className="h-3 w-3" />
+                        {a.student_first_name} {a.student_last_name} · {a.student_id_number}
+                      </p>
+                      <div className="mt-1 flex flex-wrap gap-2 text-xs text-gray-500">
+                        <span>{exam?.code}</span>
+                        {a.department && <span>{a.department}</span>}
+                        {a.section && <span>Sec {a.section}</span>}
+                        <span>
+                          Score: {a.total_score} ({a.objective_score}+{a.ai_score})
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  <AttemptStatusBadge status={a.status} />
-                  <ChevronRight className="h-5 w-5 text-gray-400" />
-                </button>
-              )
-            })}
-          </div>
+                    <AttemptStatusBadge status={a.status} />
+                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                  </button>
+                )
+              })}
+            </div>
+
+            <Pagination
+              page={pagination.page}
+              pageSize={pagination.pageSize}
+              total={pagination.total}
+              totalPages={pagination.totalPages}
+              onPageChange={pagination.setPage}
+              onPageSizeChange={pagination.setPageSize}
+            />
+          </>
         )}
       </main>
 

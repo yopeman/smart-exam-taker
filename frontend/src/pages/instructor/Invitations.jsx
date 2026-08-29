@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiClient } from '../../lib/apiClient'
 import DashboardNavbar from '../../components/DashboardNavbar'
+import { usePagination, Pagination } from '../../components/Pagination'
 import {
   Plus,
   Mail,
@@ -200,6 +201,9 @@ export default function Invitations() {
     }
   }
 
+  const minePagination = usePagination(mine)
+  const createdPagination = usePagination(created)
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <DashboardNavbar title="Invitations" />
@@ -263,8 +267,9 @@ export default function Invitations() {
               <p className="text-gray-600 dark:text-gray-400">No invitations for you</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {mine.map((inv) => (
+            <>
+              <div className="space-y-3">
+                {minePagination.paged.map((inv) => (
                 <div
                   key={inv.id}
                   className="flex items-center gap-4 rounded-lg bg-white p-4 shadow dark:bg-gray-800"
@@ -302,7 +307,17 @@ export default function Invitations() {
                   )}
                 </div>
               ))}
-            </div>
+              </div>
+
+              <Pagination
+                page={minePagination.page}
+                pageSize={minePagination.pageSize}
+                total={minePagination.total}
+                totalPages={minePagination.totalPages}
+                onPageChange={minePagination.setPage}
+                onPageSizeChange={minePagination.setPageSize}
+              />
+            </>
           )
         ) : created.length === 0 ? (
           <div className="rounded-lg bg-white py-12 text-center shadow dark:bg-gray-800">
@@ -313,8 +328,9 @@ export default function Invitations() {
             )}
           </div>
         ) : (
-          <div className="space-y-3">
-            {created.map((inv) => (
+          <>
+            <div className="space-y-3">
+              {createdPagination.paged.map((inv) => (
               <div
                 key={inv.id}
                 className="flex items-center gap-4 rounded-lg bg-white p-4 shadow dark:bg-gray-800"
@@ -361,7 +377,17 @@ export default function Invitations() {
                 </div>
               </div>
             ))}
-          </div>
+            </div>
+
+            <Pagination
+              page={createdPagination.page}
+              pageSize={createdPagination.pageSize}
+              total={createdPagination.total}
+              totalPages={createdPagination.totalPages}
+              onPageChange={createdPagination.setPage}
+              onPageSizeChange={createdPagination.setPageSize}
+            />
+          </>
         )}
       </main>
 

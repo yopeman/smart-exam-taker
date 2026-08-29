@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiClient } from '../../lib/apiClient'
 import DashboardNavbar from '../../components/DashboardNavbar'
+import { usePagination, Pagination } from '../../components/Pagination'
 import {
   Plus,
   Building2,
@@ -310,6 +311,8 @@ export default function Schools() {
 
   const list = tab === 'owned' ? owned : shared
 
+  const pagination = usePagination(list)
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <DashboardNavbar title="Schools" />
@@ -395,23 +398,34 @@ export default function Schools() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {list.map((school) => (
-              <SchoolCard
-                key={school.id}
-                school={school}
-                onEdit={
-                  tab === 'owned'
-                    ? (s) => {
-                        setEditing(s)
-                        setShowForm(true)
-                      }
-                    : undefined
-                }
-                onDelete={tab === 'owned' ? setToDelete : undefined}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {pagination.paged.map((school) => (
+                <SchoolCard
+                  key={school.id}
+                  school={school}
+                  onEdit={
+                    tab === 'owned'
+                      ? (s) => {
+                          setEditing(s)
+                          setShowForm(true)
+                        }
+                      : undefined
+                  }
+                  onDelete={tab === 'owned' ? setToDelete : undefined}
+                />
+              ))}
+            </div>
+
+            <Pagination
+              page={pagination.page}
+              pageSize={pagination.pageSize}
+              total={pagination.total}
+              totalPages={pagination.totalPages}
+              onPageChange={pagination.setPage}
+              onPageSizeChange={pagination.setPageSize}
+            />
+          </>
         )}
       </main>
 

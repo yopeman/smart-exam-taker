@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiClient } from '../../lib/apiClient'
 import DashboardNavbar from '../../components/DashboardNavbar'
+import { usePagination, Pagination } from '../../components/Pagination'
 import {
   Plus,
   Pencil,
@@ -913,6 +914,8 @@ export default function Exams() {
     loadExams()
   }
 
+  const pagination = usePagination(exams)
+
   const handleAction = async (action, exam) => {
     try {
       if (action === 'schedule') {
@@ -997,19 +1000,30 @@ export default function Exams() {
             <p className="text-gray-600 dark:text-gray-400">No exams for this school yet</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {exams.map((exam) => (
-              <ExamCard
-                key={exam.id}
-                exam={exam}
-                onEdit={(e) => {
-                  setEditing(e)
-                  setShowForm(true)
-                }}
-                onAction={handleAction}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {pagination.paged.map((exam) => (
+                <ExamCard
+                  key={exam.id}
+                  exam={exam}
+                  onEdit={(e) => {
+                    setEditing(e)
+                    setShowForm(true)
+                  }}
+                  onAction={handleAction}
+                />
+              ))}
+            </div>
+
+            <Pagination
+              page={pagination.page}
+              pageSize={pagination.pageSize}
+              total={pagination.total}
+              totalPages={pagination.totalPages}
+              onPageChange={pagination.setPage}
+              onPageSizeChange={pagination.setPageSize}
+            />
+          </>
         )}
       </main>
 
