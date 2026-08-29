@@ -89,6 +89,10 @@ function LoginPage() {
       // Navigate to dashboard or appropriate page based on user role
       if (response.user.role === 'admin') {
         navigate('/admin/sb')
+      } else if (response.user.role === 'instructor') {
+        navigate('/instructor/dashboard')
+      } else if (response.user.role === 'student') {
+        navigate('/student/dashboard')
       } else {
         navigate('/dashboard')
       }
