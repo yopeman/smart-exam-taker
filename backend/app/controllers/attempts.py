@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import AttemptStatus, Exam, ExamAttempt, ExamStatus, User, UserRole
@@ -45,6 +45,22 @@ def start_attempt(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="This exam has no questions yet",
         )
+
+    capacity = (exam.max_students or 0) + (exam.max_reserved_students or 0)
+    if capacity > 0:
+        students_count = db.scalar(
+            select(func.count(func.distinct(ExamAttempt.student_id)))
+            .select_from(ExamAttempt)
+            .where(
+                ExamAttempt.exam_id == exam.id,
+                ExamAttempt.deleted_at.is_(None),
+            )
+        )
+        if students_count is not None and students_count >= capacity:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This exam has reached its maximum number of students",
+            )
 
     if face_content:
         student_face_url = face.encode_image_data_url(face_filename, face_content)
