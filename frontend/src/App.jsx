@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import { ThemeProvider } from './contexts/ThemeContext'
 import LandingPage from './pages/public/LandingPage'
+import ProfilePage from './pages/Profile'
 import LoginPage from './pages/public/LoginPage'
 import RegisterPage from './pages/public/RegisterPage'
 import VerifyEmailPage from './pages/public/VerifyEmailPage'
@@ -25,6 +26,16 @@ function App() {
       <Route path="/auth/verify-email" element={<VerifyEmailPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+
+      {/* Profile — any authenticated user */}
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Instructor */}
       <Route

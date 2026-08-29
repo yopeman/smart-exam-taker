@@ -45,7 +45,7 @@ const AdminDashboard = () => {
         showProfileButtons={false}
       />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-8">
           <p className="text-amber-800 dark:text-amber-200 text-sm">
             Admin subscription and system-management features are not implemented yet.
