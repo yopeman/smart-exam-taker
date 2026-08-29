@@ -66,6 +66,8 @@ def seed_users() -> dict[str, User]:
     specs = [
         ("admin@yope.ai", "Site Admin", UserRole.admin, True),
         ("instructor@yope.ai", "Jane Instructor", UserRole.instructor, True),
+        ("instructor1@yope.ai", "Ian Instructor", UserRole.instructor, True),
+        ("instructor2@yope.ai", "Iris Instructor", UserRole.instructor, True),
         ("student@yope.ai", "Sam Student", UserRole.student, True),
     ]
     for email, name, role, verified in specs:
@@ -78,7 +80,7 @@ def seed_users() -> dict[str, User]:
         )
         db.add(user)
         db.flush()
-        users[role.value] = user
+        users[email] = user
     db.commit()
     return users
 
@@ -87,7 +89,7 @@ def seed_schools(users: dict[str, User]) -> list[School]:
     schools: list[School] = []
     for i in range(10):
         school = School(
-            owner_id=users["admin"].id,
+            owner_id=users["admin@yope.ai"].id,
             name=SCHOOL_NAMES[i],
             location=CITIES[i],
             logo_url=f"https://cdn.example.com/logos/{i + 1}.png",
@@ -108,7 +110,7 @@ def seed_exams(schools: list[School], users: dict[str, User]) -> list[Exam]:
         scheduled_at = _now() + timedelta(days=random.randint(1, 30))
         exam = Exam(
             school_id=schools[i].id,
-            instructor_id=users["instructor"].id,
+            instructor_id=users["instructor@yope.ai"].id,
             code=f"EXAM{i + 1:04d}",
             title=f"{SUBJECTS[i]} Midterm",
             description=f"Midterm examination for {SUBJECTS[i]}.",
@@ -158,7 +160,7 @@ def seed_attempts(exams: list[Exam], users: dict[str, User]) -> list[ExamAttempt
         last = random.choice(LAST_NAMES)
         attempt = ExamAttempt(
             exam_id=exam.id,
-            student_id=users["student"].id,
+            student_id=users["student@yope.ai"].id,
             student_first_name=first,
             student_last_name=last,
             student_id_number=f"STU{i + 1:06d}",
@@ -184,14 +186,21 @@ def seed_attempts(exams: list[Exam], users: dict[str, User]) -> list[ExamAttempt
     return attempts
 
 
-def seed_invitations(schools: list[School]) -> list[InstructorInvitation]:
+def seed_invitations(
+    schools: list[School], users: dict[str, User]
+) -> list[InstructorInvitation]:
     invitations: list[InstructorInvitation] = []
-    statuses = list(InvitationStatus)
-    for i in range(10):
-        status = statuses[i % len(statuses)]
+    instructor_emails = ["instructor1@yope.ai", "instructor2@yope.ai"]
+    for i, school in enumerate(schools):
+        email = instructor_emails[i % len(instructor_emails)]
+        status = (
+            InvitationStatus.accepted
+            if i % 3 != 0
+            else InvitationStatus.pending
+        )
         invitation = InstructorInvitation(
-            school_id=schools[i].id,
-            instructor_email=f"invite{i + 1}@yope.ai",
+            school_id=school.id,
+            instructor_email=email,
             max_exams=random.randint(1, 5),
             status=status,
             accepted_at=_now() if status == InvitationStatus.accepted else None,
@@ -222,7 +231,7 @@ if __name__ == "__main__":
         print("Seeding attempts...")
         attempts = seed_attempts(exams, users)
         print("Seeding instructor invitations...")
-        invitations = seed_invitations(schools)
+        invitations = seed_invitations(schools, users)
         print(
             f"Done. Created {len(users)} users, {len(schools)} schools, "
             f"{len(exams)} exams, {len(attempts)} attempts, "
