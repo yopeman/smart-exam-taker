@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { BookOpen, Users, Calendar, Plus, Building2, UserPlus } from 'lucide-react'
+import { BookOpen, Users, Calendar, Plus, Building2, UserPlus, ClipboardList } from 'lucide-react'
 import DashboardNavbar from '../../components/DashboardNavbar'
 
 function InstructorDashboard() {
@@ -74,6 +74,16 @@ function InstructorDashboard() {
             <div>
               <p className="font-semibold text-gray-900 dark:text-white">Manage Exams</p>
               <p className="text-sm text-gray-500">Create and run digital exams</p>
+            </div>
+          </button>
+          <button
+            onClick={() => navigate('/instructor/attempts')}
+            className="flex items-center gap-3 rounded-lg bg-white p-4 text-left shadow hover:ring-2 hover:ring-indigo-500 dark:bg-gray-800"
+          >
+            <ClipboardList className="h-6 w-6 text-indigo-600" />
+            <div>
+              <p className="font-semibold text-gray-900 dark:text-white">Attempts</p>
+              <p className="text-sm text-gray-500">Review student submissions</p>
             </div>
           </button>
         </div>

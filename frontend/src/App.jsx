@@ -11,6 +11,7 @@ import AdminDashboard from './pages/admin/Dashboard'
 import InstructorDashboard from './pages/instructor/Dashboard'
 import Schools from './pages/instructor/Schools'
 import Exams from './pages/instructor/Exams'
+import Attempts from './pages/instructor/Attempts'
 import Invitations from './pages/instructor/Invitations'
 import StudentDashboard from './pages/student/Dashboard'
 import StudentExams from './pages/student/Exams'
@@ -71,6 +72,14 @@ function App() {
         element={
           <ProtectedRoute allowedRoles={['instructor']}>
             <Exams />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/instructor/attempts"
+        element={
+          <ProtectedRoute allowedRoles={['instructor']}>
+            <Attempts />
           </ProtectedRoute>
         }
       />
