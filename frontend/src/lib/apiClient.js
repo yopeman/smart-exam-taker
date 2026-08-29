@@ -23,7 +23,7 @@ export function clearToken() {
   sessionStorage.removeItem(TOKEN_KEY)
 }
 
-const apiClient = axios.create({
+export const apiClient = axios.create({
   baseURL: `${API_BASE_URL}${API_PREFIX}`,
   headers: {
     'Content-Type': 'application/json'

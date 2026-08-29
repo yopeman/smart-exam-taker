@@ -9,6 +9,8 @@ import ForgotPasswordPage from './pages/public/ForgotPasswordPage'
 import ResetPasswordPage from './pages/public/ResetPasswordPage'
 import AdminDashboard from './pages/admin/Dashboard'
 import InstructorDashboard from './pages/instructor/Dashboard'
+import Schools from './pages/instructor/Schools'
+import Invitations from './pages/instructor/Invitations'
 import StudentDashboard from './pages/student/Dashboard'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminLogin from './pages/admin/sb/AdminLogin'
@@ -43,6 +45,22 @@ function App() {
         element={
           <ProtectedRoute allowedRoles={['instructor']}>
             <InstructorDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/instructor/schools"
+        element={
+          <ProtectedRoute allowedRoles={['instructor']}>
+            <Schools />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/instructor/invitations"
+        element={
+          <ProtectedRoute allowedRoles={['instructor']}>
+            <Invitations />
           </ProtectedRoute>
         }
       />

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { BookOpen, Users, Calendar, Plus } from 'lucide-react'
+import { BookOpen, Users, Calendar, Plus, Building2, UserPlus } from 'lucide-react'
 import DashboardNavbar from '../../components/DashboardNavbar'
 
 function InstructorDashboard() {
@@ -43,6 +43,29 @@ function InstructorDashboard() {
               <Calendar className="h-10 w-10 text-blue-600" />
             </div>
           </div>
+        </div>
+
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <button
+            onClick={() => navigate('/instructor/schools')}
+            className="flex items-center gap-3 rounded-lg bg-white p-4 text-left shadow hover:ring-2 hover:ring-indigo-500 dark:bg-gray-800"
+          >
+            <Building2 className="h-6 w-6 text-indigo-600" />
+            <div>
+              <p className="font-semibold text-gray-900 dark:text-white">Manage Schools</p>
+              <p className="text-sm text-gray-500">Create and organize your institutions</p>
+            </div>
+          </button>
+          <button
+            onClick={() => navigate('/instructor/invitations')}
+            className="flex items-center gap-3 rounded-lg bg-white p-4 text-left shadow hover:ring-2 hover:ring-indigo-500 dark:bg-gray-800"
+          >
+            <UserPlus className="h-6 w-6 text-indigo-600" />
+            <div>
+              <p className="font-semibold text-gray-900 dark:text-white">Invitations</p>
+              <p className="text-sm text-gray-500">Invite instructors or respond to invites</p>
+            </div>
+          </button>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
