@@ -10,6 +10,8 @@ const CreateExam = () => {
   const [title, setTitle] = useState('')
   const [subject, setSubject] = useState('')
   const [duration, setDuration] = useState(60)
+  const [maxStudents, setMaxStudents] = useState('')
+  const [maxReservedStudents, setMaxReservedStudents] = useState('')
   const [questions, setQuestions] = useState([
     { text: '', type: 'multiple-choice', options: ['', '', '', ''], answer: 0 }
   ])
@@ -54,6 +56,9 @@ const CreateExam = () => {
             title,
             subject,
             duration_minutes: duration,
+            max_students: maxStudents === '' ? null : Number(maxStudents),
+            max_reserved_students:
+              maxReservedStudents === '' ? null : Number(maxReservedStudents),
             question_count: questions.length,
             created_by: user?.id
           }
@@ -128,6 +133,28 @@ const CreateExam = () => {
                   value={duration}
                   onChange={(e) => setDuration(Number(e.target.value))}
                   min={1}
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Max Students</label>
+                <input
+                  type="number"
+                  value={maxStudents}
+                  onChange={(e) => setMaxStudents(e.target.value)}
+                  min={0}
+                  placeholder="Unlimited"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Max Reserved Students</label>
+                <input
+                  type="number"
+                  value={maxReservedStudents}
+                  onChange={(e) => setMaxReservedStudents(e.target.value)}
+                  min={0}
+                  placeholder="Unlimited"
                   className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all"
                 />
               </div>
