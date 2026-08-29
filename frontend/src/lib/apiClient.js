@@ -6,15 +6,21 @@ const API_PREFIX = '/api/v1'
 export const TOKEN_KEY = 'instructor_jwt'
 
 export function getToken() {
-  return localStorage.getItem(TOKEN_KEY)
+  // Check sessionStorage first (non-persistent), then localStorage (persistent)
+  return sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY)
 }
 
-export function setToken(token) {
-  localStorage.setItem(TOKEN_KEY, token)
+export function setToken(token, persistent = true) {
+  if (persistent) {
+    localStorage.setItem(TOKEN_KEY, token)
+  } else {
+    sessionStorage.setItem(TOKEN_KEY, token)
+  }
 }
 
 export function clearToken() {
   localStorage.removeItem(TOKEN_KEY)
+  sessionStorage.removeItem(TOKEN_KEY)
 }
 
 const apiClient = axios.create({

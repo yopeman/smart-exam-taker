@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Lock, Mail, ArrowRight, RefreshCw } from 'lucide-react'
 import { apiFetch, setToken } from '../../lib/apiClient'
@@ -6,7 +6,8 @@ import { apiFetch, setToken } from '../../lib/apiClient'
 function LoginPage() {
   const [formData, setFormData] = useState({
     email: '',
-    password: ''
+    password: '',
+    rememberMe: true
   })
   const [errors, setErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -14,6 +15,18 @@ function LoginPage() {
   const [isResending, setIsResending] = useState(false)
   const [resendMessage, setResendMessage] = useState('')
   const navigate = useNavigate()
+
+  // Load saved email on mount
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('remembered_email')
+    if (savedEmail) {
+      setFormData(prev => ({
+        ...prev,
+        email: savedEmail,
+        rememberMe: true
+      }))
+    }
+  }, [])
 
   const validateForm = () => {
     const newErrors = {}
@@ -33,10 +46,10 @@ function LoginPage() {
   }
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target
+    const { name, value, type, checked } = e.target
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }))
     // Clear error for this field when user starts typing
     if (errors[name]) {
@@ -63,8 +76,15 @@ function LoginPage() {
         })
       })
       
-      // Store the token
-      setToken(response.access_token)
+      // Store the token based on remember me preference
+      setToken(response.access_token, formData.rememberMe)
+      
+      // Handle remember me for email
+      if (formData.rememberMe) {
+        localStorage.setItem('remembered_email', formData.email)
+      } else {
+        localStorage.removeItem('remembered_email')
+      }
       
       // Navigate to dashboard or appropriate page based on user role
       if (response.user.role === 'admin') {
@@ -193,8 +213,10 @@ function LoginPage() {
               <div className="flex items-center">
                 <input
                   id="remember-me"
-                  name="remember-me"
+                  name="rememberMe"
                   type="checkbox"
+                  checked={formData.rememberMe}
+                  onChange={handleInputChange}
                   className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
@@ -203,9 +225,9 @@ function LoginPage() {
               </div>
 
               <div className="text-sm">
-                <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
+                <Link to="/forgot-password" className="font-medium text-indigo-600 hover:text-indigo-500">
                   Forgot password?
-                </a>
+                </Link>
               </div>
             </div>
 
