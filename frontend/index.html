@@ -5,6 +5,18 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>frontend</title>
+    <script>
+      (function() {
+        const theme = localStorage.getItem('theme') || 'system'
+        const root = document.documentElement
+        if (theme === 'system') {
+          const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+          root.classList.add(isDark ? 'dark' : 'light')
+        } else {
+          root.classList.add(theme)
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
