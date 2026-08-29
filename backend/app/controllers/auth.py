@@ -18,6 +18,7 @@ from app.schemas.user import (
     LoginRequest,
     MessageResponse,
     RegisterRequest,
+    ResendVerificationRequest,
     ResetPasswordRequest,
     TokenResponse,
     UpdateProfileRequest,
@@ -71,6 +72,29 @@ def verify_email(token: str, db: Session) -> tuple[str, str]:
     db.commit()
 
     return ("success", "Email verified successfully")
+
+
+def resend_verification_email(payload: ResendVerificationRequest, db: Session) -> MessageResponse:
+    user = db.scalar(select(User).where(User.email == payload.email.lower()))
+    
+    if user is None or user.is_deleted:
+        # Always return the same message to avoid user enumeration
+        return MessageResponse(
+            message="If an account exists for that email, a verification link has been sent"
+        )
+    
+    if user.is_verified:
+        return MessageResponse(
+            message="This email is already verified"
+        )
+    
+    # Generate new verification token and send email
+    token = create_verify_token(user.id)
+    email.send_verification_email(user.email, token, name=user.name)
+    
+    return MessageResponse(
+        message="A new verification link has been sent to your email"
+    )
 
 
 def login(payload: LoginRequest, db: Session) -> TokenResponse:

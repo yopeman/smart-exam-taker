@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Lock, Mail, User, ArrowRight, CheckCircle } from 'lucide-react'
+import { Lock, Mail, User, ArrowRight, CheckCircle, RefreshCw } from 'lucide-react'
 import { apiFetch } from '../../lib/apiClient'
 
 function RegisterPage() {
@@ -14,6 +14,9 @@ function RegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [submitSuccess, setSubmitSuccess] = useState(false)
+  const [registeredEmail, setRegisteredEmail] = useState('')
+  const [isResending, setIsResending] = useState(false)
+  const [resendMessage, setResendMessage] = useState('')
   const navigate = useNavigate()
 
   const validateForm = () => {
@@ -82,11 +85,30 @@ function RegisterPage() {
       })
       
       setSubmitSuccess(true)
+      setRegisteredEmail(formData.email)
     } catch (error) {
       console.error('Registration error:', error)
       setSubmitError(error.message || 'Registration failed. Please try again.')
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleResendVerification = async () => {
+    setIsResending(true)
+    setResendMessage('')
+    
+    try {
+      await apiFetch('/auth/resend-verification', {
+        method: 'POST',
+        body: JSON.stringify({ email: registeredEmail })
+      })
+      setResendMessage('A new verification link has been sent to your email.')
+    } catch (error) {
+      console.error('Resend verification error:', error)
+      setResendMessage(error.message || 'Failed to resend verification email.')
+    } finally {
+      setIsResending(false)
     }
   }
 
@@ -102,13 +124,42 @@ function RegisterPage() {
             <p className="text-gray-600 mb-6">
               Please check your email to verify your account before logging in.
             </p>
-            <Link
-              to="/login"
-              className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-semibold"
-            >
-              Go to Login
-              <ArrowRight className="w-5 h-5" />
-            </Link>
+            
+            {resendMessage && (
+              <div className={`mb-4 p-3 rounded-lg text-sm ${
+                resendMessage.includes('sent') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+              }`}>
+                {resendMessage}
+              </div>
+            )}
+            
+            <div className="space-y-3">
+              <button
+                onClick={handleResendVerification}
+                disabled={isResending}
+                className="w-full inline-flex items-center justify-center gap-2 bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                {isResending ? (
+                  <>
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-5 h-5" />
+                    Resend Verification Email
+                  </>
+                )}
+              </button>
+              
+              <Link
+                to="/login"
+                className="inline-flex items-center justify-center gap-2 text-indigo-600 hover:text-indigo-700 font-semibold"
+              >
+                Go to Login
+                <ArrowRight className="w-5 h-5" />
+              </Link>
+            </div>
           </div>
         </div>
       </div>

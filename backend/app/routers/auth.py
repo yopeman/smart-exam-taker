@@ -12,6 +12,7 @@ from app.schemas.user import (
     LoginRequest,
     MessageResponse,
     RegisterRequest,
+    ResendVerificationRequest,
     ResetPasswordRequest,
     TokenResponse,
     UpdateProfileRequest,
@@ -40,6 +41,13 @@ def verify_email(
 ):
     status_text, detail = auth_controller.verify_email(token, db)
     return _form_redirect(status_text, detail)
+
+
+@router.post("/resend-verification", response_model=MessageResponse)
+def resend_verification_email(
+    payload: ResendVerificationRequest, db: Session = Depends(get_db)
+):
+    return auth_controller.resend_verification_email(payload, db)
 
 
 @router.post("/login", response_model=TokenResponse)

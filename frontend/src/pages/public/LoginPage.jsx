@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Lock, Mail, ArrowRight } from 'lucide-react'
+import { Lock, Mail, ArrowRight, RefreshCw } from 'lucide-react'
 import { apiFetch, setToken } from '../../lib/apiClient'
 
 function LoginPage() {
@@ -11,6 +11,8 @@ function LoginPage() {
   const [errors, setErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [isResending, setIsResending] = useState(false)
+  const [resendMessage, setResendMessage] = useState('')
   const navigate = useNavigate()
 
   const validateForm = () => {
@@ -78,6 +80,26 @@ function LoginPage() {
     }
   }
 
+  const handleResendVerification = async () => {
+    setIsResending(true)
+    setResendMessage('')
+    
+    try {
+      await apiFetch('/auth/resend-verification', {
+        method: 'POST',
+        body: JSON.stringify({ email: formData.email })
+      })
+      setResendMessage('A new verification link has been sent to your email.')
+    } catch (error) {
+      console.error('Resend verification error:', error)
+      setResendMessage(error.message || 'Failed to resend verification email.')
+    } finally {
+      setIsResending(false)
+    }
+  }
+
+  const isVerificationError = submitError.includes('verify your email')
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 flex items-center justify-center px-4 py-12">
       <div className="max-w-md w-full">
@@ -89,7 +111,34 @@ function LoginPage() {
 
           {submitError && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-              <p className="text-red-700 text-sm">{submitError}</p>
+              <p className="text-red-700 text-sm mb-2">{submitError}</p>
+              {isVerificationError && (
+                <button
+                  onClick={handleResendVerification}
+                  disabled={isResending}
+                  className="text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isResending ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4" />
+                      Resend verification email
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          )}
+
+          {resendMessage && !isVerificationError && (
+            <div className={`mb-4 p-3 rounded-lg text-sm ${
+              resendMessage.includes('sent') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+            }`}>
+              {resendMessage}
             </div>
           )}
 
