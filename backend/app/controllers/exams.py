@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
 from app.models import Exam, ExamStatus, InstructorInvitation, InvitationStatus, School, User, UserRole
@@ -88,7 +88,7 @@ def require_exam_manager(exam: Exam, user: User, db: Session) -> None:
 
 
 def generate_code() -> str:
-    return "EXM-" + uuid.uuid4().hex[:8].upper()
+    return "EXAM-" + uuid.uuid4().hex[:8].upper()
 
 
 def create_exam(
@@ -190,12 +190,20 @@ def my_exams(user: User, db: Session) -> list:
 
 def list_reachable_exams(user: User, db: Session) -> list:
     owned_ids, shared_ids = get_reachable_school_ids(user, db)
-    school_ids = owned_ids | shared_ids
-    if not school_ids:
+    if not owned_ids and not shared_ids:
         return []
+
+    conditions = []
+    if owned_ids:
+        conditions.append(Exam.school_id.in_(owned_ids))
+    if shared_ids:
+        conditions.append(
+            and_(Exam.school_id.in_(shared_ids), Exam.instructor_id == user.id)
+        )
+
     stmt = (
         select(Exam)
-        .where(Exam.school_id.in_(school_ids), Exam.deleted_at.is_(None))
+        .where(or_(*conditions), Exam.deleted_at.is_(None))
         .order_by(Exam.created_at.desc())
     )
     return list(db.scalars(stmt))
