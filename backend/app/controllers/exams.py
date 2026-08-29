@@ -6,8 +6,14 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Exam, ExamStatus, InstructorInvitation, InvitationStatus, School, User
-from app.schemas.exam import ExamResponse, ExamUpdateRequest, ScheduleRequest, questions_adapter
+from app.models import Exam, ExamStatus, InstructorInvitation, InvitationStatus, School, User, UserRole
+from app.schemas.exam import (
+    ExamResponse,
+    ExamUpdateRequest,
+    ScheduleRequest,
+    StudentExamResponse,
+    questions_adapter,
+)
 from app.schemas.user import MessageResponse
 from app.services.processing_queue import enqueue_exam_processing
 
@@ -28,6 +34,28 @@ def require_school_manager(school: School, user: User, db: Session) -> None:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You are not authorized to manage exams for this school",
         )
+
+
+def get_reachable_school_ids(user: User, db: Session) -> tuple[set[str], set[str]]:
+    """Return (owned_school_ids, shared_school_ids) for an instructor."""
+    owned_ids = set(
+        db.scalars(
+            select(School.id).where(
+                School.owner_id == user.id,
+                School.deleted_at.is_(None),
+            )
+        )
+    )
+    shared_ids = set(
+        db.scalars(
+            select(InstructorInvitation.school_id).where(
+                InstructorInvitation.instructor_email == user.email,
+                InstructorInvitation.status == InvitationStatus.accepted,
+                InstructorInvitation.deleted_at.is_(None),
+            )
+        )
+    )
+    return owned_ids, shared_ids
 
 
 def get_school(school_id: str, user: User, db: Session) -> School:
@@ -124,6 +152,35 @@ def my_exams(user: User, db: Session) -> list:
         select(Exam)
         .where(
             Exam.instructor_id == user.id, Exam.deleted_at.is_(None)
+        )
+        .order_by(Exam.created_at.desc())
+    )
+    return list(db.scalars(stmt))
+
+
+def list_reachable_exams(user: User, db: Session) -> list:
+    owned_ids, shared_ids = get_reachable_school_ids(user, db)
+    school_ids = owned_ids | shared_ids
+    if not school_ids:
+        return []
+    stmt = (
+        select(Exam)
+        .where(Exam.school_id.in_(school_ids), Exam.deleted_at.is_(None))
+        .order_by(Exam.created_at.desc())
+    )
+    return list(db.scalars(stmt))
+
+
+def list_shared_school_exams_by_me(user: User, db: Session) -> list:
+    _, shared_ids = get_reachable_school_ids(user, db)
+    if not shared_ids:
+        return []
+    stmt = (
+        select(Exam)
+        .where(
+            Exam.school_id.in_(shared_ids),
+            Exam.instructor_id == user.id,
+            Exam.deleted_at.is_(None),
         )
         .order_by(Exam.created_at.desc())
     )
@@ -312,3 +369,81 @@ def delete_exam(exam_id: str, user: User, db: Session) -> MessageResponse:
     db.add(exam)
     db.commit()
     return MessageResponse(message="Exam deleted successfully")
+
+
+def list_available_exams_for_student(user: User, db: Session) -> list[StudentExamResponse]:
+    from app.controllers.attempts import list_my_attempts
+
+    if user.role != UserRole.student:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only students can view available exams",
+        )
+
+    attempts = list_my_attempts(user, db)
+    exam_ids = list({attempt.exam_id for attempt in attempts})
+    if not exam_ids:
+        return []
+
+    exams = db.scalars(
+        select(Exam).where(Exam.id.in_(exam_ids), Exam.deleted_at.is_(None))
+    ).all()
+    if not exams:
+        return []
+
+    instructor_ids = {exam.instructor_id for exam in exams}
+    school_ids = {exam.school_id for exam in exams}
+    instructors = {
+        u.id: u
+        for u in db.scalars(
+            select(User).where(User.id.in_(instructor_ids))
+        ).all()
+    }
+    schools = {
+        s.id: s
+        for s in db.scalars(
+            select(School).where(School.id.in_(school_ids))
+        ).all()
+    }
+
+    responses: list[StudentExamResponse] = []
+    for exam in exams:
+        is_completed = exam.status == ExamStatus.completed
+        instructor = instructors.get(exam.instructor_id)
+        school = schools.get(exam.school_id)
+        responses.append(
+            StudentExamResponse(
+                id=exam.id,
+                code=exam.code,
+                title=exam.title,
+                description=exam.description,
+                department=exam.department,
+                year_of_study=exam.year_of_study,
+                semester=exam.semester,
+                section=exam.section,
+                status=exam.status,
+                duration_minutes=exam.duration_minutes,
+                document_content=exam.document_content if is_completed else None,
+                questions=exam.questions if is_completed else None,
+                instructor=(
+                    {
+                        "id": instructor.id,
+                        "name": instructor.name,
+                    }
+                    if instructor is not None
+                    else None
+                ),
+                school=(
+                    {
+                        "id": school.id,
+                        "name": school.name,
+                        "logo_url": school.logo_url,
+                    }
+                    if school is not None
+                    else None
+                ),
+                created_at=exam.created_at,
+                updated_at=exam.updated_at,
+            )
+        )
+    return responses

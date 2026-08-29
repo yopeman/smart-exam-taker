@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.models import User
+from app.models import User, UserRole
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -106,3 +106,19 @@ def get_current_user(
             detail="Could not validate credentials",
         )
     return user
+
+
+def require_instructor(user: User) -> None:
+    if user.role not in (UserRole.instructor, UserRole.admin):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only instructors can perform this action",
+        )
+
+
+def require_student(user: User) -> None:
+    if user.role != UserRole.student:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only students can perform this action",
+        )

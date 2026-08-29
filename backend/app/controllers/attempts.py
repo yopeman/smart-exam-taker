@@ -157,3 +157,38 @@ def list_exam_attempts(exam_id: str, user: User, db: Session) -> list:
         .order_by(ExamAttempt.created_at.desc())
     )
     return list(db.scalars(stmt))
+
+
+def list_my_attempts(user: User, db: Session) -> list:
+    if user.role != UserRole.student:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only students can view their attempts",
+        )
+    stmt = (
+        select(ExamAttempt)
+        .where(
+            ExamAttempt.student_id == user.id,
+            ExamAttempt.deleted_at.is_(None),
+        )
+        .order_by(ExamAttempt.created_at.desc())
+    )
+    return list(db.scalars(stmt))
+
+
+def list_reachable_attempts(user: User, db: Session) -> list:
+    from app.controllers.exams import list_reachable_exams
+
+    exams = list_reachable_exams(user, db)
+    exam_ids = [exam.id for exam in exams]
+    if not exam_ids:
+        return []
+    stmt = (
+        select(ExamAttempt)
+        .where(
+            ExamAttempt.exam_id.in_(exam_ids),
+            ExamAttempt.deleted_at.is_(None),
+        )
+        .order_by(ExamAttempt.created_at.desc())
+    )
+    return list(db.scalars(stmt))

@@ -3,9 +3,14 @@ from sqlalchemy.orm import Session
 
 from app.controllers import exams as exams_controller
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, require_instructor, require_student
 from app.models import User
-from app.schemas.exam import ExamResponse, ExamUpdateRequest, ScheduleRequest
+from app.schemas.exam import (
+    ExamResponse,
+    ExamUpdateRequest,
+    ScheduleRequest,
+    StudentExamResponse,
+)
 from app.schemas.user import MessageResponse
 
 router = APIRouter(prefix="/exams", tags=["exams"])
@@ -68,6 +73,33 @@ def my_exams(
     db: Session = Depends(get_db),
 ):
     return exams_controller.my_exams(current_user, db)
+
+
+@router.get("/reachable", response_model=list[ExamResponse])
+def reachable_exams(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    require_instructor(current_user)
+    return exams_controller.list_reachable_exams(current_user, db)
+
+
+@router.get("/shared/created", response_model=list[ExamResponse])
+def shared_school_exams_by_me(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    require_instructor(current_user)
+    return exams_controller.list_shared_school_exams_by_me(current_user, db)
+
+
+@router.get("/available", response_model=list[StudentExamResponse])
+def available_exams(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    require_student(current_user)
+    return exams_controller.list_available_exams_for_student(current_user, db)
 
 
 @router.get("/{exam_id}", response_model=ExamResponse)

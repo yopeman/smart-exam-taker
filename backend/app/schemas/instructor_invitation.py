@@ -32,3 +32,19 @@ class InvitationResponse(BaseModel):
     canceled_at: datetime | None
     created_at: datetime
     updated_at: datetime
+
+
+class InvitationWithSchoolResponse(BaseModel):
+    id: str
+    school_id: str
+    school_name: str
+    instructor_email: str
+    max_exams: int
+    status: InvitationStatus
+    invited_at: datetime
+    expired_at: datetime
+    accepted_at: datetime | None
+    rejected_at: datetime | None
+    canceled_at: datetime | None
+    created_at: datetime
+    updated_at: datetime

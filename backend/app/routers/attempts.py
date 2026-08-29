@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.controllers import attempts as attempts_controller
 from app.controllers.exams import get_exam, require_exam_manager
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, require_instructor, require_student
 from app.models import User
 from app.schemas.attempt import (
     AttemptResponse,
@@ -13,6 +13,24 @@ from app.schemas.attempt import (
 )
 
 router = APIRouter(prefix="/attempts", tags=["attempts"])
+
+
+@router.get("/me", response_model=list[AttemptResponse])
+def my_attempts(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    require_student(current_user)
+    return attempts_controller.list_my_attempts(current_user, db)
+
+
+@router.get("/reachable", response_model=list[AttemptResponse])
+def reachable_attempts(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    require_instructor(current_user)
+    return attempts_controller.list_reachable_attempts(current_user, db)
 
 
 @router.post("/start", response_model=AttemptResponse, status_code=201)

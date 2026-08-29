@@ -22,6 +22,42 @@ class ExamUpdateRequest(BaseModel):
     questions: list[dict] | None = None
 
 
+class LimitedInstructor(BaseModel):
+    id: str
+    name: str
+
+
+class LimitedSchool(BaseModel):
+    id: str
+    name: str
+    logo_url: str | None
+
+
+class StudentExamResponse(BaseModel):
+    """Student-facing exam view with limited instructor/school info.
+
+    Document content and questions are only exposed when the exam is completed,
+    so answers are never leaked for in-progress or upcoming exams.
+    """
+
+    id: str
+    code: str
+    title: str
+    description: str | None
+    department: str | None
+    year_of_study: int | None
+    semester: str | None
+    section: str | None
+    status: ExamStatus
+    duration_minutes: int
+    document_content: str | None = None
+    questions: QuestionList | None = None
+    instructor: LimitedInstructor | None
+    school: LimitedSchool | None
+    created_at: datetime
+    updated_at: datetime
+
+
 class ScheduleRequest(BaseModel):
     scheduled_at: datetime
     timezone: str = "UTC"
@@ -59,6 +95,9 @@ __all__ = [
     "ExamUpdateRequest",
     "ScheduleRequest",
     "ExamResponse",
+    "StudentExamResponse",
+    "LimitedInstructor",
+    "LimitedSchool",
     "MessageResponse",
     "questions_adapter",
 ]

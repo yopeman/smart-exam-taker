@@ -4,7 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import School, User
+from app.models import InstructorInvitation, InvitationStatus, School, User
 from app.schemas.school import (
     MessageResponse,
     SchoolResponse,
@@ -49,6 +49,23 @@ def list_schools(user: User, db: Session) -> list[School]:
     stmt = select(School).where(
         School.owner_id == user.id,
         School.deleted_at.is_(None),
+    )
+    return list(db.scalars(stmt))
+
+
+def list_shared_schools(user: User, db: Session) -> list[School]:
+    stmt = (
+        select(School)
+        .join(
+            InstructorInvitation,
+            InstructorInvitation.school_id == School.id,
+        )
+        .where(
+            InstructorInvitation.instructor_email == user.email,
+            InstructorInvitation.status == InvitationStatus.accepted,
+            InstructorInvitation.deleted_at.is_(None),
+            School.deleted_at.is_(None),
+        )
     )
     return list(db.scalars(stmt))
 

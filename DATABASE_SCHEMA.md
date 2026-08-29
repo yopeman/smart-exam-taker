@@ -120,6 +120,7 @@
 ## Exam Attempts
 - id
 - exam id
+- student id
 - student first name
 - student last name
 - student id number

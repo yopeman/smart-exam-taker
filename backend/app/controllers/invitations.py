@@ -116,6 +116,22 @@ def my_invitations(user: User, db: Session) -> list:
     return list(db.scalars(stmt))
 
 
+def list_created_invitations(user: User, db: Session) -> list:
+    owned_school_ids = select(School.id).where(
+        School.owner_id == user.id,
+        School.deleted_at.is_(None),
+    )
+    stmt = (
+        select(InstructorInvitation)
+        .where(
+            InstructorInvitation.school_id.in_(owned_school_ids),
+            InstructorInvitation.deleted_at.is_(None),
+        )
+        .order_by(InstructorInvitation.created_at.desc())
+    )
+    return list(db.scalars(stmt))
+
+
 def get_invitation_detail(invitation_id: str, user: User, db: Session) -> InstructorInvitation:
     invitation = get_invitation(invitation_id, db)
     require_owner(invitation, user, db)
