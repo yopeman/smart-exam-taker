@@ -18,7 +18,7 @@ from app.schemas.instructor_invitation import (
     InvitationUpdateRequest,
 )
 from app.schemas.user import MessageResponse
-from app.services.email import send_invitation_email
+from app.services.email import send_invitation_status_emails
 
 
 def get_owned_school(school_id: str, user: User, db: Session) -> School:
@@ -45,6 +45,18 @@ def require_owner(
     invitation: InstructorInvitation, user: User, db: Session
 ) -> School:
     return get_owned_school(invitation.school_id, user, db)
+
+
+def notify_invitation_parties(
+    invitation: InstructorInvitation, action: str, db: Session
+) -> None:
+    school = db.get(School, invitation.school_id)
+    if school is None:
+        return
+    owner = db.get(User, school.owner_id)
+    if owner is None:
+        return
+    send_invitation_status_emails(owner.email, invitation, school.name, action)
 
 
 def require_invitee(invitation: InstructorInvitation, user: User) -> None:
@@ -85,9 +97,7 @@ def create_invitation(
     db.commit()
     db.refresh(invitation)
 
-    send_invitation_email(
-        invitation.instructor_email, school.name, INVITATION_EXPIRE_DAYS
-    )
+    notify_invitation_parties(invitation, "created", db)
     return invitation
 
 
@@ -164,10 +174,9 @@ def update_invitation(
 
     if payload.resend:
         refresh_expiration(invitation)
-        school = db.get(School, invitation.school_id)
-        send_invitation_email(
-            invitation.instructor_email, school.name, INVITATION_EXPIRE_DAYS
-        )
+        notify_invitation_parties(invitation, "resent", db)
+    else:
+        notify_invitation_parties(invitation, "updated", db)
 
     db.add(invitation)
     db.commit()
@@ -205,6 +214,7 @@ def accept_invitation(invitation_id: str, user: User, db: Session) -> Instructor
     db.add(invitation)
     db.commit()
     db.refresh(invitation)
+    notify_invitation_parties(invitation, "accepted", db)
     return invitation
 
 
@@ -238,6 +248,7 @@ def reject_invitation(invitation_id: str, user: User, db: Session) -> Instructor
     db.add(invitation)
     db.commit()
     db.refresh(invitation)
+    notify_invitation_parties(invitation, "rejected", db)
     return invitation
 
 
@@ -261,6 +272,7 @@ def cancel_invitation(invitation_id: str, user: User, db: Session) -> Instructor
     db.add(invitation)
     db.commit()
     db.refresh(invitation)
+    notify_invitation_parties(invitation, "canceled", db)
     return invitation
 
 
@@ -270,4 +282,5 @@ def delete_invitation(invitation_id: str, user: User, db: Session) -> MessageRes
     invitation.deleted_at = datetime.now(timezone.utc)
     db.add(invitation)
     db.commit()
+    notify_invitation_parties(invitation, "deleted", db)
     return MessageResponse(message="Invitation deleted successfully")

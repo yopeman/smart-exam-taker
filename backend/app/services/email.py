@@ -42,6 +42,51 @@ def send_invitation_email(to_email: str, school_name: str, expires_in_days: int)
         logger.warning("Failed to send instructor invitation email: %s", exc)
 
 
+def send_invitation_status_emails(
+    owner_email: str,
+    invitation,
+    school_name: str,
+    action: str,
+) -> None:
+    """Notify both the school owner and the invited instructor about an
+    invitation action (created, resent, updated, accepted, rejected,
+    canceled, deleted)."""
+    instructor_email = invitation.instructor_email
+    status = invitation.status.value
+    summary = (
+        f"School: {school_name}\n"
+        f"Invited instructor: {instructor_email}\n"
+        f"Max exams allowed: {invitation.max_exams}\n"
+        f"Status: {status}\n"
+        f"Expires at: {invitation.expired_at}\n"
+    )
+
+    owner_subject = f"Invitation update for {school_name} ({action})"
+    owner_body = (
+        f"Hi,\n\n"
+        f"The instructor invitation for {school_name} was {action}.\n\n"
+        f"{summary}\n"
+        f"Smart Exam Taker"
+    )
+
+    invitee_subject = f"Invitation to {school_name} ({action})"
+    invitee_body = (
+        f"Hi,\n\n"
+        f"The invitation to join {school_name} as an instructor was {action}.\n\n"
+        f"{summary}\n"
+        f"Smart Exam Taker"
+    )
+
+    try:
+        send_email(owner_email, owner_subject, owner_body)
+    except Exception as exc:  # pragma: no cover - email is best effort
+        logger.warning("Failed to send invitation owner email: %s", exc)
+    try:
+        send_email(instructor_email, invitee_subject, invitee_body)
+    except Exception as exc:  # pragma: no cover - email is best effort
+        logger.warning("Failed to send invitation instructor email: %s", exc)
+
+
 def send_verification_email(to_email: str, token: str) -> None:
     link = f"{settings.FRONTEND_BASE_URL}/auth/verify-email?token={token}"
     subject = "Verify your email"
