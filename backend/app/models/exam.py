@@ -17,6 +17,7 @@ def _utcnow() -> datetime:
 
 
 class ExamStatus(str, enum.Enum):
+    processing = "processing"
     draft = "draft"
     submitted = "submitted"
     scheduled = "scheduled"

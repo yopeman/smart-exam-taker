@@ -8,6 +8,7 @@ from app.core.config import settings
 from app.core.database import Base, engine
 from app.models import Exam
 from app.routers import auth, exams, health, invitations, schools
+from app.services.processing_queue import start_worker, stop_worker
 
 
 def _ensure_schema() -> None:
@@ -29,7 +30,11 @@ def _ensure_schema() -> None:
 async def lifespan(app: FastAPI):
     # Create tables on startup (dev convenience; use Alembic in prod)
     _ensure_schema()
-    yield
+    start_worker()
+    try:
+        yield
+    finally:
+        stop_worker()
 
 
 app = FastAPI(

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.models import Exam, ExamStatus, InstructorInvitation, InvitationStatus, School, User
 from app.schemas.exam import ExamResponse, ExamUpdateRequest, ScheduleRequest, questions_adapter
 from app.schemas.user import MessageResponse
-from app.services import ai, document
+from app.services.processing_queue import enqueue_exam_processing
 
 
 def require_school_manager(school: School, user: User, db: Session) -> None:
@@ -86,25 +86,6 @@ def create_exam(
             detail="A document is required to create an exam",
         )
 
-    try:
-        text = document.extract_document_text(filename, content)
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
-        )
-
-    try:
-        questions = ai.generate_questions(text)
-    except RuntimeError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
-        )
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Failed to generate questions: {exc}",
-        )
-
     exam = Exam(
         school_id=school.id,
         instructor_id=user.id,
@@ -115,16 +96,16 @@ def create_exam(
         year_of_study=year_of_study,
         semester=semester,
         section=section,
-        document_content=text,
-        questions=[q.model_dump() for q in questions],
         duration_minutes=duration_minutes,
         max_students=max_students,
         max_reserved_students=max_reserved_students,
-        status=ExamStatus.draft,
+        status=ExamStatus.processing,
     )
     db.add(exam)
     db.commit()
     db.refresh(exam)
+
+    enqueue_exam_processing(exam.id, filename, content)
     return exam
 
 
