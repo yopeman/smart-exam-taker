@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     RESET_TOKEN_EXPIRE_MINUTES: int = 30
 
     FRONTEND_BASE_URL: str = "http://localhost:5173"
+    BACKEND_BASE_URL: str = "http://localhost:8000"
 
     EMAIL_HOST: str = "smtp.gmail.com"
     EMAIL_PORT: int = 587

@@ -103,7 +103,7 @@ def send_invitation_status_emails(
 
 
 def send_verification_email(to_email: str, token: str, name: str | None = None) -> None:
-    link = f"{settings.FRONTEND_BASE_URL}/auth/verify-email?token={token}"
+    link = f"{settings.BACKEND_BASE_URL}{settings.API_V1_PREFIX}/auth/verify-email?token={token}"
     subject = "Verify your email"
     greeting = f"Hi {name},\n\n" if name else "Hi,\n\n"
     body = (
