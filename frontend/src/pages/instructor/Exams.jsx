@@ -886,14 +886,21 @@ export default function Exams() {
     setLoading(true)
     setError('')
     try {
-      const data = await apiClient.get(`/exams/schools/${selectedSchool}`)
+      const school = schools.find((s) => s.id === selectedSchool)
+      let data
+      if (school?._shared) {
+        const shared = await apiClient.get('/exams/shared/created')
+        data = shared.filter((e) => e.school_id === selectedSchool)
+      } else {
+        data = await apiClient.get(`/exams/schools/${selectedSchool}`)
+      }
       setExams(data)
     } catch (err) {
       setError(err.message || 'Failed to load exams')
     } finally {
       setLoading(false)
     }
-  }, [selectedSchool])
+  }, [selectedSchool, schools])
 
   useEffect(() => {
     loadExams()
