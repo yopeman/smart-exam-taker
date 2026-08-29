@@ -1,24 +1,13 @@
 import { useNavigate } from 'react-router-dom'
 import { BookOpen, Users, Calendar, Plus } from 'lucide-react'
+import DashboardNavbar from '../../components/DashboardNavbar'
 
 function InstructorDashboard() {
   const navigate = useNavigate()
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900">Instructor Dashboard</h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <button className="text-gray-600 hover:text-gray-900">Profile</button>
-              <button className="text-gray-600 hover:text-gray-900">Logout</button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <DashboardNavbar title="Instructor Dashboard" />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
