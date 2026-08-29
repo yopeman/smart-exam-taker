@@ -1,3 +1,5 @@
+import axios from 'axios'
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 const API_PREFIX = '/api/v1'
 
@@ -15,30 +17,49 @@ export function clearToken() {
   localStorage.removeItem(TOKEN_KEY)
 }
 
-export async function apiFetch(path, options = {}) {
-  const url = `${API_BASE_URL}${API_PREFIX}${path}`
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(options.headers || {})
+const apiClient = axios.create({
+  baseURL: `${API_BASE_URL}${API_PREFIX}`,
+  headers: {
+    'Content-Type': 'application/json'
   }
+})
+
+// Add request interceptor to include token
+apiClient.interceptors.request.use((config) => {
   const token = getToken()
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`
+    config.headers.Authorization = `Bearer ${token}`
   }
+  return config
+})
 
-  const res = await fetch(url, { ...options, headers })
-
-  if (!res.ok) {
+// Add response interceptor to handle errors
+apiClient.interceptors.response.use(
+  (response) => {
+    if (response.status === 204) return null
+    return response.data
+  },
+  (error) => {
     let detail = 'Request failed'
-    try {
-      const body = await res.json()
-      detail = body.detail || detail
-    } catch {
-      // ignore parse errors
+    if (error.response) {
+      detail = error.response.data?.detail || detail
+    } else if (error.message) {
+      detail = error.message
     }
     throw new Error(detail)
   }
+)
 
-  if (res.status === 204) return null
-  return res.json()
+export async function apiFetch(path, options = {}) {
+  const method = options.method || 'GET'
+  const data = options.body ? JSON.parse(options.body) : undefined
+  
+  const response = await apiClient.request({
+    method,
+    url: path,
+    data,
+    headers: options.headers
+  })
+  
+  return response
 }

@@ -1,4 +1,4 @@
-import { useAuth } from '../../contexts/AuthContext'
+import { useAuth } from '../../../contexts/AuthContext'
 import { LogOut, Settings, CreditCard, Building2, Users } from 'lucide-react'
 
 // Admin scope: manages subscriptions and the overall system.
