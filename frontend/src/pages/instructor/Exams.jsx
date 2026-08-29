@@ -462,11 +462,15 @@ export default function Exams() {
   const [toDelete, setToDelete] = useState(null)
 
   useEffect(() => {
-    apiClient
-      .get('/schools')
-      .then((data) => {
-        setSchools(data)
-        if (data.length > 0) setSelectedSchool(data[0].id)
+    Promise.all([apiClient.get('/schools'), apiClient.get('/schools/shared')])
+      .then(([owned, shared]) => {
+        const merged = [...owned]
+        const ownedIds = new Set(owned.map((s) => s.id))
+        shared.forEach((s) => {
+          if (!ownedIds.has(s.id)) merged.push({ ...s, _shared: true })
+        })
+        setSchools(merged)
+        if (merged.length > 0) setSelectedSchool(merged[0].id)
       })
       .catch((err) => setError(err.message || 'Failed to load schools'))
   }, [])
@@ -569,6 +573,7 @@ export default function Exams() {
             {schools.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
+                {s._shared ? ' (shared)' : ' (owned)'}
               </option>
             ))}
           </select>
