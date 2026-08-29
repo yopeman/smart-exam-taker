@@ -52,7 +52,7 @@ def register(payload: RegisterRequest, db: Session) -> User:
     db.refresh(user)
 
     token = create_verify_token(user.id)
-    email.send_verification_email(user.email, token)
+    email.send_verification_email(user.email, token, name=user.name)
 
     return user
 
@@ -101,7 +101,7 @@ def forgot_password(payload: ForgotPasswordRequest, db: Session) -> MessageRespo
     user = db.scalar(select(User).where(User.email == payload.email.lower()))
     if user is not None and not user.is_deleted:
         token = create_reset_token(user.id)
-        email.send_reset_email(user.email, token)
+        email.send_reset_email(user.email, token, name=user.name)
 
     # Always return the same message to avoid user enumeration.
     return MessageResponse(

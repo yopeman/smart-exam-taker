@@ -24,11 +24,14 @@ def send_email(to_email: str, subject: str, body: str) -> None:
         server.send_message(msg)
 
 
-def send_invitation_email(to_email: str, school_name: str, expires_in_days: int) -> None:
+def send_invitation_email(
+    to_email: str, school_name: str, expires_in_days: int, name: str | None = None
+) -> None:
     link = f"{settings.FRONTEND_BASE_URL}/invitations"
     subject = f"You've been invited to {school_name} on Smart Exam Taker"
+    greeting = f"Hi {name},\n\n" if name else "Hi,\n\n"
     body = (
-        f"Hi,\n\n"
+        f"{greeting}"
         f"You have been invited to join {school_name} as an instructor "
         f"on Smart Exam Taker.\n"
         f"Sign in with this email to accept or reject the invitation.\n\n"
@@ -99,11 +102,12 @@ def send_invitation_status_emails(
         logger.warning("Failed to send invitation instructor email: %s", exc)
 
 
-def send_verification_email(to_email: str, token: str) -> None:
+def send_verification_email(to_email: str, token: str, name: str | None = None) -> None:
     link = f"{settings.FRONTEND_BASE_URL}/auth/verify-email?token={token}"
     subject = "Verify your email"
+    greeting = f"Hi {name},\n\n" if name else "Hi,\n\n"
     body = (
-        f"Hi,\n\n"
+        f"{greeting}"
         f"Please verify your email by clicking the link below:\n{link}\n\n"
         f"This link is valid for "
         f"{settings.VERIFY_TOKEN_EXPIRE_MINUTES} minutes.\n\n"
@@ -113,11 +117,12 @@ def send_verification_email(to_email: str, token: str) -> None:
     send_email(to_email, subject, body)
 
 
-def send_reset_email(to_email: str, token: str) -> None:
+def send_reset_email(to_email: str, token: str, name: str | None = None) -> None:
     link = f"{settings.FRONTEND_BASE_URL}/auth/reset-password?token={token}"
     subject = "Reset your password"
+    greeting = f"Hi {name},\n\n" if name else "Hi,\n\n"
     body = (
-        f"Hi,\n\n"
+        f"{greeting}"
         f"We received a request to reset your password.\n"
         f"Click the link below to choose a new password:\n{link}\n\n"
         f"This link is valid for {settings.RESET_TOKEN_EXPIRE_MINUTES} minutes.\n"
