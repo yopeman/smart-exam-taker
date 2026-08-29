@@ -66,15 +66,28 @@ function InstructorDashboard() {
               <p className="text-sm text-gray-500">Invite instructors or respond to invites</p>
             </div>
           </button>
+          <button
+            onClick={() => navigate('/instructor/exams')}
+            className="flex items-center gap-3 rounded-lg bg-white p-4 text-left shadow hover:ring-2 hover:ring-indigo-500 dark:bg-gray-800"
+          >
+            <BookOpen className="h-6 w-6 text-indigo-600" />
+            <div>
+              <p className="font-semibold text-gray-900 dark:text-white">Manage Exams</p>
+              <p className="text-sm text-gray-500">Create and run digital exams</p>
+            </div>
+          </button>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Exams</h3>
-            <button className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">
-              <Plus className="h-5 w-5" />
-              Create Exam
-            </button>
+            <button
+            onClick={() => navigate('/instructor/exams')}
+            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
+          >
+            <Plus className="h-5 w-5" />
+            Create Exam
+          </button>
           </div>
           <p className="text-gray-500 dark:text-gray-400 text-center py-8">No exams created yet</p>
         </div>

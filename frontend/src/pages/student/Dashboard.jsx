@@ -48,6 +48,12 @@ function StudentDashboard() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Available Exams</h3>
+            <button
+              onClick={() => navigate('/student/exams')}
+              className="text-sm text-indigo-600 hover:underline"
+            >
+              View all
+            </button>
           </div>
           <p className="text-gray-500 dark:text-gray-400 text-center py-8">No exams assigned yet</p>
         </div>

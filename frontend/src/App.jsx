@@ -10,8 +10,10 @@ import ResetPasswordPage from './pages/public/ResetPasswordPage'
 import AdminDashboard from './pages/admin/Dashboard'
 import InstructorDashboard from './pages/instructor/Dashboard'
 import Schools from './pages/instructor/Schools'
+import Exams from './pages/instructor/Exams'
 import Invitations from './pages/instructor/Invitations'
 import StudentDashboard from './pages/student/Dashboard'
+import StudentExams from './pages/student/Exams'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminLogin from './pages/admin/sb/AdminLogin'
 import RegisteredSchoolsList from './pages/admin/sb/RegisteredSchoolsList'
@@ -64,6 +66,14 @@ function App() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/instructor/exams"
+        element={
+          <ProtectedRoute allowedRoles={['instructor']}>
+            <Exams />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Student */}
       <Route
@@ -71,6 +81,14 @@ function App() {
         element={
           <ProtectedRoute allowedRoles={['student']}>
             <StudentDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/exams"
+        element={
+          <ProtectedRoute allowedRoles={['student']}>
+            <StudentExams />
           </ProtectedRoute>
         }
       />
