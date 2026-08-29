@@ -21,6 +21,13 @@ class SubmitAttemptRequest(BaseModel):
     answers: dict[str, Any] = Field(default_factory=dict)
 
 
+class UpdateAttemptScoresRequest(BaseModel):
+    grading_details: list[Any] | None = Field(default=None)
+    objective_score: float | None = Field(default=None, ge=0)
+    ai_score: float | None = Field(default=None, ge=0)
+    total_score: float | None = Field(default=None, ge=0)
+
+
 class AttemptResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

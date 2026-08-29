@@ -10,6 +10,7 @@ from app.schemas.attempt import (
     AttemptResponse,
     StartAttemptRequest,
     SubmitAttemptRequest,
+    UpdateAttemptScoresRequest,
 )
 
 router = APIRouter(prefix="/attempts", tags=["attempts"])
@@ -88,6 +89,18 @@ def get_attempt(
     db: Session = Depends(get_db),
 ):
     return attempts_controller.get_attempt(attempt_id, current_user, db)
+
+
+@router.patch("/{attempt_id}/scores", response_model=AttemptResponse)
+def update_attempt_scores(
+    attempt_id: str,
+    payload: UpdateAttemptScoresRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return attempts_controller.update_attempt_scores(
+        attempt_id, payload, current_user, db
+    )
 
 
 @router.get("/exams/{exam_id}", response_model=list[AttemptResponse])

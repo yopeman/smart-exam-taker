@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import AttemptStatus, Exam, ExamAttempt, ExamStatus, User, UserRole
-from app.schemas.attempt import StartAttemptRequest
+from app.schemas.attempt import StartAttemptRequest, UpdateAttemptScoresRequest
 from app.services import face
 from app.services.grading_queue import enqueue_attempt_grading
 
@@ -121,6 +121,42 @@ def submit_attempt(
     db.refresh(attempt)
 
     enqueue_attempt_grading(attempt.id)
+    return attempt
+
+
+def update_attempt_scores(
+    attempt_id: str, payload: UpdateAttemptScoresRequest, user: User, db: Session
+) -> ExamAttempt:
+    from app.controllers.exams import get_exam, require_exam_manager
+
+    attempt = db.get(ExamAttempt, attempt_id)
+    if attempt is None or attempt.is_deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Exam attempt not found"
+        )
+
+    if user.role != UserRole.instructor:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only instructors can adjust attempt scores",
+        )
+
+    exam = get_exam(attempt.exam_id, db)
+    require_exam_manager(exam, user, db)
+
+    if payload.grading_details is not None:
+        attempt.grading_details = payload.grading_details
+    if payload.objective_score is not None:
+        attempt.objective_score = payload.objective_score
+    if payload.ai_score is not None:
+        attempt.ai_score = payload.ai_score
+    if payload.total_score is not None:
+        attempt.total_score = payload.total_score
+
+    attempt.updated_at = datetime.now(timezone.utc)
+    db.add(attempt)
+    db.commit()
+    db.refresh(attempt)
     return attempt
 
 
