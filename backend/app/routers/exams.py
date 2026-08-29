@@ -33,6 +33,8 @@ def create_exam(
     duration_minutes: int = Form(default=60, ge=1),
     max_students: int | None = Form(default=None, ge=0),
     max_reserved_students: int | None = Form(default=None, ge=0),
+    document_content: str | None = Form(default=None),
+    questions: str | None = Form(default=None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -55,6 +57,8 @@ def create_exam(
         duration_minutes,
         max_students,
         max_reserved_students,
+        document_content,
+        questions,
     )
 
 

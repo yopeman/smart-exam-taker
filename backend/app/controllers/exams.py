@@ -1,3 +1,4 @@
+import json
 import uuid
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -105,15 +106,37 @@ def create_exam(
     duration_minutes: int,
     max_students: int | None,
     max_reserved_students: int | None,
+    document_content: str | None = None,
+    questions: str | None = None,
 ) -> Exam:
     school = get_school(school_id, user, db)
 
-    if filename is None:
+    if filename is None and not document_content and not questions:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A document is required to create an exam",
+            detail="A document, document content, or questions are required to create an exam",
         )
 
+    parsed_questions: list | None = None
+    if questions:
+        try:
+            raw = json.loads(questions)
+        except json.JSONDecodeError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="questions must be valid JSON",
+            )
+        try:
+            parsed_questions = [
+                q.model_dump() for q in questions_adapter.validate_python(raw)
+            ]
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid questions payload: {exc}",
+            )
+
+    has_file = filename is not None
     exam = Exam(
         school_id=school.id,
         instructor_id=user.id,
@@ -127,13 +150,20 @@ def create_exam(
         duration_minutes=duration_minutes,
         max_students=max_students,
         max_reserved_students=max_reserved_students,
-        status=ExamStatus.processing,
+        status=ExamStatus.processing if has_file else ExamStatus.draft,
     )
+
+    if document_content is not None:
+        exam.document_content = document_content
+    if parsed_questions is not None:
+        exam.questions = parsed_questions
+
     db.add(exam)
     db.commit()
     db.refresh(exam)
 
-    enqueue_exam_processing(exam.id, filename, content)
+    if has_file:
+        enqueue_exam_processing(exam.id, filename, content)
     return exam
 
 
