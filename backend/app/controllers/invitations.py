@@ -56,7 +56,17 @@ def notify_invitation_parties(
     owner = db.get(User, school.owner_id)
     if owner is None:
         return
-    send_invitation_status_emails(owner.email, invitation, school.name, action)
+    instructor = db.scalar(
+        select(User).where(User.email == invitation.instructor_email)
+    )
+    send_invitation_status_emails(
+        owner.email,
+        invitation,
+        school.name,
+        action,
+        owner_name=owner.name,
+        instructor_name=instructor.name if instructor else None,
+    )
 
 
 def require_invitee(invitation: InstructorInvitation, user: User) -> None:

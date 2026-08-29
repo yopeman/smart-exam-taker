@@ -47,12 +47,18 @@ def send_invitation_status_emails(
     invitation,
     school_name: str,
     action: str,
+    owner_name: str | None = None,
+    instructor_name: str | None = None,
 ) -> None:
     """Notify both the school owner and the invited instructor about an
     invitation action (created, resent, updated, accepted, rejected,
     canceled, deleted)."""
     instructor_email = invitation.instructor_email
     status = invitation.status.value
+    owner_greeting = f"Hi {owner_name},\n\n" if owner_name else "Hi,\n\n"
+    invitee_greeting = (
+        f"Hi {instructor_name},\n\n" if instructor_name else "Hi,\n\n"
+    )
     summary = (
         f"School: {school_name}\n"
         f"Invited instructor: {instructor_email}\n"
@@ -60,20 +66,26 @@ def send_invitation_status_emails(
         f"Status: {status}\n"
         f"Expires at: {invitation.expired_at}\n"
     )
+    owner_link = (
+        f"{settings.FRONTEND_BASE_URL}/schools/{invitation.school_id}/invitations"
+    )
+    invitee_link = f"{settings.FRONTEND_BASE_URL}/invitations"
 
     owner_subject = f"Invitation update for {school_name} ({action})"
     owner_body = (
-        f"Hi,\n\n"
+        f"{owner_greeting}"
         f"The instructor invitation for {school_name} was {action}.\n\n"
         f"{summary}\n"
+        f"View invitation: {owner_link}\n\n"
         f"Smart Exam Taker"
     )
 
     invitee_subject = f"Invitation to {school_name} ({action})"
     invitee_body = (
-        f"Hi,\n\n"
+        f"{invitee_greeting}"
         f"The invitation to join {school_name} as an instructor was {action}.\n\n"
         f"{summary}\n"
+        f"View invitation: {invitee_link}\n\n"
         f"Smart Exam Taker"
     )
 
