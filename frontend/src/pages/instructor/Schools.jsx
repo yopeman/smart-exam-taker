@@ -238,22 +238,28 @@ function SchoolCard({ school, onEdit, onDelete }) {
           )}
         </div>
       </div>
-      <div className="flex gap-2">
-        <button
-          onClick={() => onEdit(school)}
-          className="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-indigo-600 dark:hover:bg-gray-700"
-          title="Edit"
-        >
-          <Pencil className="h-4 w-4" />
-        </button>
-        <button
-          onClick={() => onDelete(school)}
-          className="rounded-md p-2 text-gray-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
-          title="Delete"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
-      </div>
+      {(onEdit || onDelete) && (
+        <div className="flex gap-2">
+          {onEdit && (
+            <button
+              onClick={() => onEdit(school)}
+              className="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-indigo-600 dark:hover:bg-gray-700"
+              title="Edit"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={() => onDelete(school)}
+              className="rounded-md p-2 text-gray-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+              title="Delete"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
