@@ -395,6 +395,7 @@ function ExamFormModal({ schoolId, schools = [], exam, onClose, onSaved }) {
           if (v === '' || v === null) return
           payload[k] = k === 'duration_minutes' ? Number(v) : v
         })
+        payload.school_id = selectedSchoolId
         if (questions.length > 0) payload.questions = questions
         await apiClient.patch(`/exams/${exam.id}`, payload)
       } else {

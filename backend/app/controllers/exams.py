@@ -238,6 +238,10 @@ def update_exam(
             detail="Only draft or submitted exams can be edited",
         )
 
+    if payload.school_id is not None and payload.school_id != exam.school_id:
+        get_school(payload.school_id, user, db)
+        exam.school_id = payload.school_id
+
     if payload.title is not None:
         exam.title = payload.title
     if payload.description is not None:
