@@ -7,7 +7,8 @@ from sqlalchemy import inspect
 from app.core.config import settings
 from app.core.database import Base, engine
 from app.models import Exam
-from app.routers import auth, exams, health, invitations, schools
+from app.routers import auth, attempts, exams, health, invitations, schools
+from app.services.grading_queue import start_grading_worker, stop_grading_worker
 from app.services.processing_queue import start_worker, stop_worker
 
 
@@ -31,10 +32,12 @@ async def lifespan(app: FastAPI):
     # Create tables on startup (dev convenience; use Alembic in prod)
     _ensure_schema()
     start_worker()
+    start_grading_worker()
     try:
         yield
     finally:
         stop_worker()
+        stop_grading_worker()
 
 
 app = FastAPI(
@@ -56,6 +59,7 @@ app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
 app.include_router(schools.router, prefix=settings.API_V1_PREFIX)
 app.include_router(invitations.router, prefix=settings.API_V1_PREFIX)
 app.include_router(exams.router, prefix=settings.API_V1_PREFIX)
+app.include_router(attempts.router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/")

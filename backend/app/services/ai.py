@@ -5,12 +5,13 @@ from langchain_groq import ChatGroq
 
 from app.core.config import settings
 from app.schemas.question import (
+    EssayQuestion,
     Question,
     QuestionList,
     RawQuestion,
     to_question,
 )
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -71,3 +72,52 @@ def generate_questions(text: str) -> QuestionList:
             "The AI could not extract any valid questions from the document"
         )
     return questions
+
+
+class EssayGrade(BaseModel):
+    score: int = Field(ge=0)
+    feedback: str
+
+
+_ESSAY_SYSTEM_PROMPT = """You are an examination grader. Grade the student's \
+answer to a short-answer/essay question against the provided model answer and \
+rubric.
+
+Rules:
+- Award an integer score from 0 up to the question's maximum points.
+- Be fair and consistent: reward correct ideas, relevant detail, and clear \
+reasoning even if wording differs from the model answer.
+- Provide a brief, constructive feedback string explaining the score.
+- Return ONLY the structured grade (score and feedback).
+"""
+
+
+def grade_essay(question: EssayQuestion, student_answer: str) -> EssayGrade:
+    if not settings.GROQ_API_KEY:
+        raise RuntimeError(
+            "GROQ_API_KEY is not configured; cannot grade essay answers with AI"
+        )
+
+    llm = ChatGroq(
+        model=settings.GROQ_MODEL,
+        api_key=settings.GROQ_API_KEY,
+        temperature=0,
+    )
+    structured = llm.with_structured_output(EssayGrade)
+
+    max_points = question.points
+    prompt = (
+        f"Maximum points: {max_points}\n"
+        f"Question: {question.prompt}\n"
+        f"Model answer: {question.model_answer or '(not provided)'}\n"
+        f"Rubric: {question.rubric or '(not provided)'}\n"
+        f"Student answer: {student_answer or '(blank)'}\n"
+    )
+
+    result = structured.invoke(
+        [SystemMessage(_ESSAY_SYSTEM_PROMPT), HumanMessage(content=prompt)]
+    )
+    grade = result
+    if grade.score > max_points:
+        grade = EssayGrade(score=max_points, feedback=grade.feedback)
+    return grade

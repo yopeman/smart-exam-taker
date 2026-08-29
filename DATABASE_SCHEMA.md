@@ -137,7 +137,7 @@
 - started at
 - submitted at
 - graded at
-- status: in progress, submitted, graded
+- status: in progress, submitted, processing, graded
 - created at
 - updated at
 - deleted at
