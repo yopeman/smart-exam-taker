@@ -57,12 +57,8 @@ function SchoolFormModal({ school, onClose, onSaved }) {
       }
 
       if (school) {
-        await apiClient.patch(`/schools/${school.id}`, {
-          name: form.name,
-          location: form.location || null,
-          primary_color: form.primary_color || null,
-          secondary_color: form.secondary_color || null,
-          logo_url: logoPreview || null,
+        await apiClient.patch(`/schools/${school.id}`, fd, {
+          headers: { 'Content-Type': 'multipart/form-data' },
         })
       } else {
         await apiClient.post('/schools', fd, {
