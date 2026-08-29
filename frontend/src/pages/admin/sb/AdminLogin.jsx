@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useInstructorAuth } from '../../contexts/InstructorAuthContext'
-import { Lock, Mail } from 'lucide-react'
+import { useAuth } from '../../../contexts/AuthContext'
+import { Lock, Mail, ArrowRight } from 'lucide-react'
 
-const InstructorLogin = () => {
+const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { login } = useInstructorAuth()
+  const { login } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
@@ -18,7 +18,7 @@ const InstructorLogin = () => {
 
     try {
       await login(email, password)
-      navigate('/instructor')
+      navigate('/admin/sb/schools')
     } catch (err) {
       setError(err.message || 'Failed to login. Please check your credentials.')
     } finally {
@@ -31,10 +31,10 @@ const InstructorLogin = () => {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Instructor Sign In
+            Sign In
           </h2>
           <p className="text-gray-600">
-            Access your dashboard to manage exams and attempts
+            Access the admin dashboard to view registered schools
           </p>
         </div>
 
@@ -63,7 +63,7 @@ const InstructorLogin = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-10 px-4 py-3 rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all"
-                  placeholder="instructor@example.com"
+                  placeholder="admin@example.com"
                 />
               </div>
             </div>
@@ -74,7 +74,7 @@ const InstructorLogin = () => {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 h-5 text-gray-400" />
+                  <Lock className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
                   id="password"
@@ -95,7 +95,11 @@ const InstructorLogin = () => {
               disabled={loading}
               className="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? 'Signing in...' : (
+                <>
+                  Sign In
+                </>
+              )}
             </button>
           </form>
 
@@ -110,4 +114,4 @@ const InstructorLogin = () => {
   )
 }
 
-export default InstructorLogin
+export default Login
