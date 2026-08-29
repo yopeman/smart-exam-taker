@@ -45,6 +45,9 @@ class Exam(Base):
 
     duration_minutes: Mapped[int] = mapped_column(Integer, default=60)
 
+    max_students: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    max_reserved_students: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
     started_by: Mapped[str | None] = mapped_column(String(36), nullable=True)
     scheduled_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True

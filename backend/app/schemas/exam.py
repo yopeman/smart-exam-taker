@@ -17,6 +17,8 @@ class ExamUpdateRequest(BaseModel):
     semester: str | None = Field(default=None, max_length=50)
     section: str | None = Field(default=None, max_length=50)
     duration_minutes: int | None = Field(default=None, ge=1)
+    max_students: int | None = Field(default=None, ge=0)
+    max_reserved_students: int | None = Field(default=None, ge=0)
     questions: list[dict] | None = None
 
 
@@ -41,6 +43,8 @@ class ExamResponse(BaseModel):
     document_content: str | None
     questions: QuestionList
     duration_minutes: int
+    max_students: int | None
+    max_reserved_students: int | None
     status: ExamStatus
     started_by: str | None
     scheduled_at: datetime | None

@@ -81,6 +81,8 @@ def create_exam(
     semester: str | None = Form(default=None, max_length=50),
     section: str | None = Form(default=None, max_length=50),
     duration_minutes: int = Form(default=60, ge=1),
+    max_students: int | None = Form(default=None, ge=0),
+    max_reserved_students: int | None = Form(default=None, ge=0),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -125,6 +127,8 @@ def create_exam(
         document_content=text,
         questions=[q.model_dump() for q in questions],
         duration_minutes=duration_minutes,
+        max_students=max_students,
+        max_reserved_students=max_reserved_students,
         status=ExamStatus.draft,
     )
     db.add(exam)
@@ -204,6 +208,10 @@ def update_exam(
         exam.section = payload.section
     if payload.duration_minutes is not None:
         exam.duration_minutes = payload.duration_minutes
+    if payload.max_students is not None:
+        exam.max_students = payload.max_students
+    if payload.max_reserved_students is not None:
+        exam.max_reserved_students = payload.max_reserved_students
     if payload.questions is not None:
         try:
             exam.questions = [

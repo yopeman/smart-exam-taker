@@ -52,6 +52,8 @@
 - document content
 - questions {JSON}
 - duration minutes
+- max students
+- max reserved students
 - started by
 - scheduled at
 - started at
