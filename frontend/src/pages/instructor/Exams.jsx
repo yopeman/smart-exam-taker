@@ -105,40 +105,163 @@ const QUESTION_TYPES = [
   { value: 'short_answer', label: 'Short Answer' },
 ]
 
-function buildTotal(questions) {
-  return { questions: [{ scenario: null, questions }] }
+function buildTotal(groups) {
+  return {
+    questions: (groups || [])
+      .map((g) => ({
+        scenario: g.scenario && g.scenario.trim() ? g.scenario.trim() : null,
+        questions: g.questions || [],
+      }))
+      .filter((g) => g.questions.length > 0),
+  }
 }
 
-function QuestionBuilder({ questions, setQuestions }) {
-  const update = (idx, patch) => {
-    setQuestions((qs) => qs.map((q, i) => (i === idx ? { ...q, ...patch } : q)))
+function BlankAnswersInput({ value, onChange, className, placeholder }) {
+  const parsedValue = Array.isArray(value) ? value.join(', ') : value || ''
+
+  const [draft, setDraft] = useState(parsedValue)
+
+  useEffect(() => {
+    setDraft((prev) => {
+      const normalized = prev
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .join(', ')
+      return normalized === parsedValue ? prev : parsedValue
+    })
+  }, [parsedValue])
+
+  return (
+    <input
+      placeholder={placeholder}
+      value={draft}
+      onChange={(e) => {
+        setDraft(e.target.value)
+        onChange(
+          e.target.value
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        )
+      }}
+      className={className}
+    />
+  )
+}
+
+function QuestionBuilder({ groups, setGroups }) {
+  const countBefore = (gi) =>
+    groups.slice(0, gi).reduce((n, g) => n + (g.questions?.length || 0), 0)
+
+  const locate = (idx) => {
+    let remaining = idx
+    for (let gi = 0; gi < groups.length; gi++) {
+      const len = groups[gi].questions?.length || 0
+      if (remaining < len) return { gi, qi: remaining }
+      remaining -= len
+    }
+    return { gi: -1, qi: -1 }
   }
 
-  const updateInner = (idx, patch) => {
-    setQuestions((qs) =>
-      qs.map((q, i) =>
-        i === idx ? { ...q, question: { ...q.question, ...patch } } : q
+  const update = (idx, patch) => {
+    const { gi, qi } = locate(idx)
+    if (gi < 0) return
+    setGroups((gs) =>
+      gs.map((g, i) =>
+        i === gi
+          ? {
+              ...g,
+              questions: g.questions.map((q, j) =>
+                j === qi ? { ...q, ...patch } : q
+              ),
+            }
+          : g
       )
     )
   }
 
-  const addQuestion = () => {
-    setQuestions((qs) => [...qs, blankQuestion('mcq')])
+  const updateInner = (idx, patch) => {
+    const { gi, qi } = locate(idx)
+    if (gi < 0) return
+    setGroups((gs) =>
+      gs.map((g, i) =>
+        i === gi
+          ? {
+              ...g,
+              questions: g.questions.map((q, j) =>
+                j === qi ? { ...q, question: { ...q.question, ...patch } } : q
+              ),
+            }
+          : g
+      )
+    )
   }
 
+  const addQuestion = (gi) =>
+    setGroups((gs) =>
+      gs.map((g, i) =>
+        i === gi ? { ...g, questions: [...g.questions, blankQuestion('mcq')] } : g
+      )
+    )
+
   const removeQuestion = (idx) => {
-    setQuestions((qs) => qs.filter((_, i) => i !== idx))
+    const { gi, qi } = locate(idx)
+    if (gi < 0) return
+    setGroups((gs) =>
+      gs.map((g, i) =>
+        i === gi ? { ...g, questions: g.questions.filter((_, j) => j !== qi) } : g
+      )
+    )
   }
 
   const changeType = (idx, type) => {
-    setQuestions((qs) => qs.map((q, i) => (i === idx ? blankQuestion(type) : q)))
+    const { gi, qi } = locate(idx)
+    if (gi < 0) return
+    setGroups((gs) =>
+      gs.map((g, i) =>
+        i === gi
+          ? { ...g, questions: g.questions.map((q, j) => (j === qi ? blankQuestion(type) : q)) }
+          : g
+      )
+    )
   }
+
+  const updateGroup = (gi, patch) =>
+    setGroups((gs) => gs.map((g, i) => (i === gi ? { ...g, ...patch } : g)))
+
+  const addGroup = () =>
+    setGroups((gs) => [...gs, { scenario: '', questions: [blankQuestion('mcq')] }])
+
+  const removeGroup = (gi) => setGroups((gs) => gs.filter((_, i) => i !== gi))
 
   return (
     <div className="space-y-4">
-      {questions.map((q, idx) => {
-        const inner = q.question || {}
-        const innerType = inner.type || q.type
+      {groups.map((group, gi) => {
+        const groupBase = countBefore(gi)
+        return (
+          <div key={`group-${gi}`} className="space-y-2">
+            <div className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-600 dark:bg-gray-800">
+              <span className="text-xs font-semibold text-gray-500">Scenario</span>
+              <input
+                placeholder="Reading passage / shared context (optional)"
+                value={group.scenario || ''}
+                onChange={(e) => updateGroup(gi, { scenario: e.target.value })}
+                className="flex-1 rounded-md border border-gray-300 px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+              <button
+                type="button"
+                onClick={() => removeGroup(gi)}
+                className="text-xs text-red-600 hover:underline"
+              >
+                Remove
+              </button>
+            </div>
+
+            {group.questions.map((q, qIdx) => {
+              const inner = q.question || {}
+              const innerType = inner.type || q.type
+              const idx = groupBase + qIdx
         return (
           <div
             key={q.id || idx}
@@ -398,18 +521,13 @@ function QuestionBuilder({ questions, setQuestions }) {
                 {inner.correct_answers.map((blanks, bi) => (
                   <div key={bi} className="flex items-center gap-2">
                     <span className="text-xs text-gray-400">Blank {bi + 1}:</span>
-                    <input
+                    <BlankAnswersInput
                       placeholder="Accepted answers (comma separated)"
                       value={Array.isArray(blanks) ? blanks.join(', ') : blanks}
-                      onChange={(e) =>
+                      onChange={(answers) =>
                         updateInner(idx, {
                           correct_answers: inner.correct_answers.map((b, i) =>
-                            i === bi
-                              ? e.target.value
-                                  .split(',')
-                                  .map((s) => s.trim())
-                                  .filter(Boolean)
-                              : b
+                            i === bi ? answers : b
                           ),
                         })
                       }
@@ -442,23 +560,34 @@ function QuestionBuilder({ questions, setQuestions }) {
 
             {innerType === 'short_answer' && (
               <textarea
-                placeholder="Model answer"
+                placeholder="Detailed answer"
                 value={inner.correct_answer || ''}
                 onChange={(e) => updateInner(idx, { correct_answer: e.target.value })}
-                rows={2}
+                rows={5}
                 className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               />
             )}
+          </div>
+              )
+            })}
+
+            <button
+              type="button"
+              onClick={() => addQuestion(gi)}
+              className="w-full rounded-md border border-dashed border-gray-300 py-2 text-sm text-indigo-600 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700"
+            >
+              + Add Question
+            </button>
           </div>
         )
       })}
 
       <button
         type="button"
-        onClick={addQuestion}
-        className="w-full rounded-md border border-dashed border-gray-300 py-2 text-sm text-indigo-600 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700"
+        onClick={addGroup}
+        className="w-full rounded-md border border-dashed border-indigo-300 py-2 text-sm text-indigo-600 hover:bg-indigo-50 dark:border-indigo-600 dark:hover:bg-indigo-900/20"
       >
-        + Add Question
+        + Add Scenario Group
       </button>
     </div>
   )
@@ -483,12 +612,18 @@ function ExamFormModal({ schoolId, schools = [], exam, onClose, onSaved }) {
   const [source, setSource] = useState('file')
   const [file, setFile] = useState(null)
   const [documentContent, setDocumentContent] = useState('')
-  const [questions, setQuestions] = useState(
+  const [groups, setGroups] = useState(
     () => {
-      const initial = isEdit && exam?.questions ? exam.questions : []
-      if (Array.isArray(initial)) return []
-      const groups = initial.questions || []
-      return groups.flatMap((g) => g.questions || [])
+      const payload = isEdit && exam?.questions ? exam.questions : null
+      if (payload && !Array.isArray(payload) && Array.isArray(payload.questions)) {
+        return payload.questions.length > 0
+          ? payload.questions.map((g) => ({
+              scenario: g.scenario ?? '',
+              questions: g.questions || [],
+            }))
+          : [{ scenario: '', questions: [] }]
+      }
+      return [{ scenario: '', questions: [] }]
     }
   )
   const [saving, setSaving] = useState(false)
@@ -515,7 +650,10 @@ function ExamFormModal({ schoolId, schools = [], exam, onClose, onSaved }) {
         setError('Please provide the document content')
         return
       }
-      if (source === 'questions' && questions.length === 0) {
+      if (
+        source === 'questions' &&
+        groups.reduce((n, g) => n + (g.questions?.length || 0), 0) === 0
+      ) {
         setError('Please add at least one question')
         return
       }
@@ -529,7 +667,8 @@ function ExamFormModal({ schoolId, schools = [], exam, onClose, onSaved }) {
           payload[k] = k === 'duration_minutes' ? Number(v) : v
         })
         payload.school_id = selectedSchoolId
-        if (questions.length > 0) payload.questions = buildTotal(questions)
+        if (groups.reduce((n, g) => n + (g.questions?.length || 0), 0) > 0)
+          payload.questions = buildTotal(groups)
         await apiClient.patch(`/exams/${exam.id}`, payload)
       } else {
         const fd = new FormData()
@@ -550,7 +689,7 @@ function ExamFormModal({ schoolId, schools = [], exam, onClose, onSaved }) {
         } else if (source === 'document') {
           fd.append('document_content', documentContent)
         } else if (source === 'questions') {
-          fd.append('questions', JSON.stringify(buildTotal(questions)))
+          fd.append('questions', JSON.stringify(buildTotal(groups)))
         }
 
         await apiClient.post(`/exams/schools/${selectedSchoolId}`, fd, {
@@ -739,7 +878,7 @@ function ExamFormModal({ schoolId, schools = [], exam, onClose, onSaved }) {
               <p className="mb-2 text-xs text-gray-500">
                 Edit the existing questions for this exam.
               </p>
-              <QuestionBuilder questions={questions} setQuestions={setQuestions} />
+              <QuestionBuilder groups={groups} setGroups={setGroups} />
             </div>
           ) : (
             <div>
@@ -796,7 +935,7 @@ function ExamFormModal({ schoolId, schools = [], exam, onClose, onSaved }) {
               )}
 
               {source === 'questions' && (
-                <QuestionBuilder questions={questions} setQuestions={setQuestions} />
+                <QuestionBuilder groups={groups} setGroups={setGroups} />
               )}
             </div>
           )}
