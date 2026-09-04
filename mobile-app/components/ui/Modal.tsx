@@ -42,7 +42,7 @@ export const Modal: React.FC<ModalProps> = ({
             style,
           ]}
         >
-          {title && (
+          {title ? (
             <View style={styles.header}>
               <Text
                 style={[
@@ -63,7 +63,7 @@ export const Modal: React.FC<ModalProps> = ({
                 </Text>
               </TouchableOpacity>
             </View>
-          )}
+          ) : null}
           <View style={styles.body}>{children}</View>
         </View>
       </View>

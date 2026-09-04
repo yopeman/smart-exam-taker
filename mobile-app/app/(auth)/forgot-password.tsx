@@ -89,11 +89,11 @@ export default function ForgotPasswordScreen() {
             error={emailError}
           />
 
-          {error && (
+          {error ? (
             <Text style={[styles.errorText, { color: theme.colors.error, fontSize: theme.typography.sizes.sm }]}>
               {error}
             </Text>
-          )}
+          ) : null}
 
           <Button
             title="Send Reset Link"

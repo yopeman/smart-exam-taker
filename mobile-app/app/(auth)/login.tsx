@@ -84,11 +84,11 @@ export default function LoginScreen() {
             error={passwordError}
           />
 
-          {error && (
+          {error ? (
             <Text style={[styles.errorText, { color: theme.colors.error, fontSize: theme.typography.sizes.sm }]}>
               {error}
             </Text>
-          )}
+          ) : null}
 
           <Button
             title="Sign In"

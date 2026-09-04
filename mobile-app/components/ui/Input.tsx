@@ -43,7 +43,7 @@ export const Input: React.FC<InputProps> = ({
         rules={rules}
         render={({ field: { onChange, onBlur, value }, fieldState: { error: fieldError } }) => (
           <View style={[styles.container, containerStyle]}>
-            {label && (
+            {label ? (
               <Text
                 style={[
                   styles.label,
@@ -53,7 +53,7 @@ export const Input: React.FC<InputProps> = ({
               >
                 {label}
               </Text>
-            )}
+            ) : null}
             <TextInput
               style={[
                 styles.input,
@@ -71,7 +71,7 @@ export const Input: React.FC<InputProps> = ({
               value={value}
               {...textInputProps}
             />
-            {(error || fieldError?.message) && (
+            {(error || fieldError?.message) ? (
               <Text
                 style={[
                   styles.error,
@@ -80,7 +80,7 @@ export const Input: React.FC<InputProps> = ({
               >
                 {error || fieldError?.message}
               </Text>
-            )}
+            ) : null}
           </View>
         )}
       />
@@ -89,7 +89,7 @@ export const Input: React.FC<InputProps> = ({
 
   return (
     <View style={[styles.container, containerStyle]}>
-      {label && (
+      {label ? (
         <Text
           style={[
             styles.label,
@@ -99,7 +99,7 @@ export const Input: React.FC<InputProps> = ({
         >
           {label}
         </Text>
-      )}
+      ) : null}
       <TextInput
         style={[
           styles.input,
@@ -114,7 +114,7 @@ export const Input: React.FC<InputProps> = ({
         placeholderTextColor={theme.colors.textLight}
         {...textInputProps}
       />
-      {error && (
+      {error ? (
         <Text
           style={[
             styles.error,
@@ -123,7 +123,7 @@ export const Input: React.FC<InputProps> = ({
         >
           {error}
         </Text>
-      )}
+      ) : null}
     </View>
   );
 };
