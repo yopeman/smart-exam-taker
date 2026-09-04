@@ -12,7 +12,7 @@ import { Input } from '../../components/ui/Input';
 
 export default function StudentDashboard() {
   const router = useRouter();
-  const { user, logout, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const { availableExams, fetchExamByCode, isLoading: examsLoading } = useExamStore();
   const { myAttempts, fetchMyAttempts, isLoading: attemptsLoading, syncOfflineData, setOfflineStatus } = useAttemptStore();
   const { isOnline } = useOnlineStatus();
@@ -36,11 +36,6 @@ export default function StudentDashboard() {
     }
   }, [isOnline]);
 
-  const handleLogout = async () => {
-    await logout();
-    router.replace('/(auth)/login');
-  };
-
   const handleTakeExam = async () => {
     const code = examCode.trim();
     if (!code) {
@@ -55,9 +50,6 @@ export default function StudentDashboard() {
       setCodeError('Exam not found or not available');
     }
   };
-
-  const availableCount = availableExams.filter(e => e.is_available && !e.has_attempted).length;
-  const completedCount = myAttempts.filter(a => a.status === 'graded').length;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -78,25 +70,6 @@ export default function StudentDashboard() {
           )}
         </View>
 
-        <View style={styles.statsContainer}>
-          <Card variant="elevated" style={styles.statCard}>
-            <Text style={[styles.statNumber, { color: theme.colors.primary, fontSize: theme.typography.sizes['3xl'] }]}>
-              {availableCount}
-            </Text>
-            <Text style={[styles.statLabel, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.sm }]}>
-              Available Exams
-            </Text>
-          </Card>
-
-          <Card variant="elevated" style={styles.statCard}>
-            <Text style={[styles.statNumber, { color: theme.colors.secondary, fontSize: theme.typography.sizes['3xl'] }]}>
-              {completedCount}
-            </Text>
-            <Text style={[styles.statLabel, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.sm }]}>
-              Completed
-            </Text>
-          </Card>
-        </View>
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text, fontSize: theme.typography.sizes.lg }]}>
@@ -150,14 +123,6 @@ export default function StudentDashboard() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.section}>
-          <Button
-            title="Logout"
-            onPress={handleLogout}
-            variant="outline"
-            style={styles.logoutButton}
-          />
-        </View>
       </ScrollView>
     </View>
   );
@@ -190,23 +155,6 @@ const styles = StyleSheet.create({
   offlineText: {
     fontWeight: '600',
   },
-  statsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 24,
-    gap: 16,
-  },
-  statCard: {
-    flex: 1,
-    padding: 20,
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  statLabel: {
-    textAlign: 'center',
-  },
   section: {
     padding: 24,
   },
@@ -224,8 +172,5 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   actionSubtitle: {
-  },
-  logoutButton: {
-    marginTop: 8,
   },
 });
