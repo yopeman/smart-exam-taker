@@ -15,6 +15,7 @@ export const API_ENDPOINTS = {
     ME: '/auth/me',
     PROFILE: '/auth/profile',
     DELETE_ACCOUNT: '/auth/account',
+    CHANGE_PASSWORD: '/auth/change-password',
   },
   SCHOOLS: {
     LIST: '/schools',

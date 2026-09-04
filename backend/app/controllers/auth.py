@@ -14,6 +14,7 @@ from app.core.security import (
 )
 from app.models import User, UserRole
 from app.schemas.user import (
+    ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
     MessageResponse,
@@ -181,3 +182,21 @@ def delete_account(current_user: User, db: Session) -> MessageResponse:
     db.commit()
 
     return MessageResponse(message="Your account has been deleted")
+
+
+def change_password(
+    payload: ChangePasswordRequest,
+    current_user: User,
+    db: Session,
+) -> MessageResponse:
+    if not verify_password(payload.current_password, current_user.password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect",
+        )
+
+    current_user.password = hash_password(payload.new_password)
+    db.add(current_user)
+    db.commit()
+
+    return MessageResponse(message="Password changed successfully")

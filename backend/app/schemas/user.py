@@ -42,6 +42,18 @@ class UpdateProfileRequest(BaseModel):
     password: str | None = Field(default=None, min_length=8, max_length=128)
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=8, max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        if not any(c.isdigit() for c in v):
+            raise ValueError("password must contain at least one digit")
+        return v
+
+
 class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

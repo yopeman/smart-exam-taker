@@ -17,20 +17,52 @@ export default function ProfileScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [name, setName] = useState(user?.name || '');
   const [nameError, setNameError] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordErrors, setPasswordErrors] = useState({ current: '', new: '', confirm: '' });
 
   const handleUpdateProfile = async () => {
     setNameError('');
+    setPasswordErrors({ current: '', new: '', confirm: '' });
     
     if (!name) {
       setNameError('Name is required');
       return;
     }
 
+    const wantsPasswordChange = currentPassword || newPassword || confirmPassword;
+    if (wantsPasswordChange) {
+      let hasError = false;
+      if (!currentPassword) {
+        setPasswordErrors(prev => ({ ...prev, current: 'Current password is required' }));
+        hasError = true;
+      }
+      if (!newPassword) {
+        setPasswordErrors(prev => ({ ...prev, new: 'New password is required' }));
+        hasError = true;
+      } else if (newPassword.length < 8) {
+        setPasswordErrors(prev => ({ ...prev, new: 'Password must be at least 8 characters' }));
+        hasError = true;
+      }
+      if (newPassword !== confirmPassword) {
+        setPasswordErrors(prev => ({ ...prev, confirm: 'Passwords do not match' }));
+        hasError = true;
+      }
+      if (hasError) return;
+    }
+
     setIsSubmitting(true);
     try {
       await authApi.updateProfile({ name });
+      if (wantsPasswordChange) {
+        await authApi.changePassword({ current_password: currentPassword, new_password: newPassword });
+      }
       setIsEditing(false);
-      Alert.alert('Success', 'Profile updated successfully');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      Alert.alert('Success', wantsPasswordChange ? 'Profile and password updated successfully' : 'Profile updated successfully');
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to update profile');
     } finally {
@@ -117,6 +149,27 @@ export default function ProfileScreen() {
                 onChangeText={setName}
                 error={nameError}
               />
+              <Input
+                label="Current Password"
+                value={currentPassword}
+                onChangeText={setCurrentPassword}
+                secureTextEntry
+                error={passwordErrors.current}
+              />
+              <Input
+                label="New Password"
+                value={newPassword}
+                onChangeText={setNewPassword}
+                secureTextEntry
+                error={passwordErrors.new}
+              />
+              <Input
+                label="Confirm New Password"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry
+                error={passwordErrors.confirm}
+              />
               <View style={styles.buttonRow}>
                 <Button
                   title="Cancel"
@@ -124,6 +177,10 @@ export default function ProfileScreen() {
                     setIsEditing(false);
                     setName(user?.name || '');
                     setNameError('');
+                    setCurrentPassword('');
+                    setNewPassword('');
+                    setConfirmPassword('');
+                    setPasswordErrors({ current: '', new: '', confirm: '' });
                   }}
                   variant="outline"
                   style={styles.cancelButton}
@@ -284,5 +341,14 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     marginTop: 8,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 16,
+  },
+  subSectionTitle: {
+    fontWeight: '600',
+    marginBottom: 12,
   },
 });
