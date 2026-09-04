@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { attemptsApi, Attempt, StartAttemptRequest, SubmitAttemptRequest } from '../lib/api/attempts';
 import { OfflineQueue } from '../lib/utils/offlineQueue';
-import { useOnlineStatus } from '../hooks/useOnlineStatus';
+
 
 interface AttemptState {
   myAttempts: Attempt[];
@@ -104,8 +104,7 @@ export const useAttemptStore = create<AttemptState & AttemptActions>()(
         })),
       
       syncOfflineData: async () => {
-        const { isOnline } = useOnlineStatus();
-        if (!isOnline) return;
+        if (get().isOffline) return;
 
         const result = await OfflineQueue.processQueue(async (item) => {
           try {
