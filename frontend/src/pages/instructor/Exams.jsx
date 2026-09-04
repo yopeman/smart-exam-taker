@@ -107,6 +107,7 @@ function QuestionBuilder({ questions, setQuestions }) {
                 </option>
               ))}
             </select>
+            <span className="text-xs font-semibold text-gray-500">Points</span>
             <input
               type="number"
               min={0}
