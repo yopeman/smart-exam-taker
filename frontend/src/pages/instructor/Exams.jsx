@@ -14,6 +14,7 @@ import {
   Send,
   FileText,
   Clock,
+  Copy,
   X,
 } from 'lucide-react'
 
@@ -769,6 +770,14 @@ function ScheduleModal({ exam, onClose, onSaved }) {
 
 function ExamCard({ exam, onEdit, onAction }) {
   const status = exam.status
+  const [copied, setCopied] = useState(false)
+
+  const copyCode = () => {
+    navigator.clipboard.writeText(exam.code)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
   return (
     <div className="rounded-lg bg-white p-4 shadow dark:bg-gray-800">
       <div className="flex items-start justify-between gap-3">
@@ -777,7 +786,16 @@ function ExamCard({ exam, onEdit, onAction }) {
             <p className="truncate font-semibold text-gray-900 dark:text-white">{exam.title}</p>
             <StatusBadge status={status} />
           </div>
-          <p className="mt-1 text-xs text-gray-500">Code: {exam.code}</p>
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-gray-500">
+            Code: {exam.code}
+            <button
+              onClick={copyCode}
+              className="inline-flex items-center rounded p-0.5 hover:bg-gray-200 dark:hover:bg-gray-600"
+              title="Copy code"
+            >
+              <Copy className={`h-3 w-3 ${copied ? 'text-green-500' : ''}`} />
+            </button>
+          </p>
           {exam.description && (
             <p className="mt-1 line-clamp-2 text-sm text-gray-600 dark:text-gray-400">
               {exam.description}
