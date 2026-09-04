@@ -142,6 +142,90 @@ class TotalQuestions(BaseModel):
     questions: list[SubQuestions] = Field(min_length=1)
 
 
+# ==================== Student-Facing Question Schemas ====================
+# These mirror the full question models but drop answer keys
+# (correct_answer, correct_mapping, correct_answers) so they are never
+# leaked to students. `extra="ignore"` lets them sanitize stored question
+# dicts that still include the answer fields.
+
+
+class StudentMCQQuestion(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    type: Literal[QuestionType.mcq] = QuestionType.mcq
+    question: str = Field(min_length=1)
+    options: list[MCQOption] = Field(min_length=2)
+
+
+class StudentTrueFalseQuestion(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    type: Literal[QuestionType.true_false] = QuestionType.true_false
+    question: str = Field(min_length=1)
+
+
+class StudentMatchingQuestion(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    type: Literal[QuestionType.matching] = QuestionType.matching
+    question: str = Field(min_length=1)
+    left_items: list[str] = Field(min_length=1)
+    right_items: list[str] = Field(min_length=1)
+
+
+class StudentBlankSpaceQuestion(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    type: Literal[QuestionType.blank_space] = QuestionType.blank_space
+    question: str = Field(min_length=1)
+
+
+class StudentShortAnswerQuestion(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    type: Literal[QuestionType.short_answer] = QuestionType.short_answer
+    question: str = Field(min_length=1)
+
+
+StudentQuestionUnion = Annotated[
+    Union[
+        StudentMCQQuestion,
+        StudentMatchingQuestion,
+        StudentTrueFalseQuestion,
+        StudentBlankSpaceQuestion,
+        StudentShortAnswerQuestion,
+    ],
+    Field(discriminator="type"),
+]
+
+
+class StudentQuestion(BaseModel):
+    """One question as seen by a student (no answer key)."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    id: str = Field(min_length=1)
+    point: float = Field(default=1.0, ge=0)
+    question: StudentQuestionUnion
+
+
+class StudentSubQuestions(BaseModel):
+    """A group of questions sharing an optional scenario, student-facing."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    scenario: str | None = None
+    questions: list[StudentQuestion] = Field(min_length=1)
+
+
+class StudentTotalQuestions(BaseModel):
+    """Top-level student-facing container: full exam question set."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    questions: list[StudentSubQuestions] = Field(min_length=1)
+
+
 def flatten_questions(total: TotalQuestions) -> list[Question]:
     """Return every question across all sub-groups, in order."""
     return [q for group in total.questions for q in group.questions]
@@ -199,6 +283,14 @@ __all__ = [
     "Question",
     "SubQuestions",
     "TotalQuestions",
+    "StudentMCQQuestion",
+    "StudentTrueFalseQuestion",
+    "StudentMatchingQuestion",
+    "StudentBlankSpaceQuestion",
+    "StudentShortAnswerQuestion",
+    "StudentQuestion",
+    "StudentSubQuestions",
+    "StudentTotalQuestions",
     "MCQOption",
     "MCQQuestion",
     "MatchingQuestion",

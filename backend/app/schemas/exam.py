@@ -3,7 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from app.models import ExamStatus
-from app.schemas.question import TotalQuestions
+from app.schemas.question import StudentTotalQuestions, TotalQuestions
 from app.schemas.user import MessageResponse
 
 questions_adapter: TypeAdapter[TotalQuestions] = TypeAdapter(TotalQuestions)
@@ -52,7 +52,7 @@ class StudentExamResponse(BaseModel):
     status: ExamStatus
     duration_minutes: int
     document_content: str | None = None
-    questions: TotalQuestions | None = None
+    questions: StudentTotalQuestions | None = None
     instructor: LimitedInstructor | None
     school: LimitedSchool | None
     created_at: datetime

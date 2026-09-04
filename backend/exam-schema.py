@@ -42,6 +42,7 @@ class TrueFalseQuestion(BaseModel):
 ## 3. Matching (with validator)
 class MatchingQuestion(BaseModel):
     type: Literal[QuestionType.MATCHING] = QuestionType.MATCHING
+    question: str
     left_items: List[str]             # e.g. ["A", "B", "C"]
     right_items: List[str]            # e.g. ["1", "2", "3"]
     correct_mapping: Dict[int, int]   # left_index -> right_index (0‑based)
