@@ -17,6 +17,7 @@ interface ExamActions {
   fetchMyExams: () => Promise<void>;
   fetchExamById: (id: string) => Promise<void>;
   fetchExamByCode: (code: string) => Promise<StudentExam | null>;
+  fetchStudentExamById: (id: string) => Promise<StudentExam | null>;
   startExam: (id: string) => Promise<void>;
   completeExam: (id: string) => Promise<void>;
   clearError: () => void;
@@ -77,6 +78,21 @@ export const useExamStore = create<ExamState & ExamActions>()(
         set({ isLoading: true, error: null });
         try {
           const exam = await examsApi.getExamByCode(code);
+          set({ examByCode: exam, isLoading: false });
+          return exam;
+        } catch (error: any) {
+          set({ 
+            error: error.message || 'Failed to fetch exam', 
+            isLoading: false 
+          });
+          return null;
+        }
+      },
+
+      fetchStudentExamById: async (id: string) => {
+        set({ isLoading: true, error: null });
+        try {
+          const exam = await examsApi.getStudentExamById(id);
           set({ examByCode: exam, isLoading: false });
           return exam;
         } catch (error: any) {

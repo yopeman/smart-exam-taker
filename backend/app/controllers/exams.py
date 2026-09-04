@@ -295,6 +295,70 @@ def get_student_exam_by_code(code: str, user: User, db: Session) -> StudentExamR
     )
 
 
+def get_student_exam_by_id(exam_id: str, user: User, db: Session) -> StudentExamResponse:
+    """Fetch an exam by ID for a student.
+
+    Only exams in submitted, scheduled, or started status are exposed. Like all
+    student-facing responses, document content and questions are never leaked.
+    """
+    if user.role != UserRole.student:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only students can access exams by ID",
+        )
+
+    exam = db.scalar(
+        select(Exam).where(
+            Exam.id == exam_id,
+            Exam.deleted_at.is_(None),
+        )
+    )
+    if exam is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Exam not found"
+        )
+
+    if exam.status not in (
+        ExamStatus.submitted,
+        ExamStatus.scheduled,
+        ExamStatus.started,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This exam is not available to take",
+        )
+
+    instructor = db.get(User, exam.instructor_id)
+    school = db.get(School, exam.school_id)
+
+    return StudentExamResponse(
+        id=exam.id,
+        code=exam.code,
+        title=exam.title,
+        description=exam.description,
+        department=exam.department,
+        year_of_study=exam.year_of_study,
+        semester=exam.semester,
+        section=exam.section,
+        status=exam.status,
+        duration_minutes=exam.duration_minutes,
+        document_content=None,
+        questions=None,
+        instructor=(
+            {"id": instructor.id, "name": instructor.name}
+            if instructor is not None
+            else None
+        ),
+        school=(
+            {"id": school.id, "name": school.name, "logo_url": school.logo_url}
+            if school is not None
+            else None
+        ),
+        created_at=exam.created_at,
+        updated_at=exam.updated_at,
+    )
+
+
 def update_exam(
     exam_id: str,
     payload: ExamUpdateRequest,

@@ -74,6 +74,13 @@ export const examsApi = {
     return response.data;
   },
 
+  async getStudentExamById(id: string): Promise<StudentExam> {
+    const response = await apiClient.get<StudentExam>(
+      API_ENDPOINTS.EXAMS.STUDENT_GET(id)
+    );
+    return response.data;
+  },
+
   async getSchoolExams(schoolId: string): Promise<Exam[]> {
     const response = await apiClient.get<Exam[]>(
       API_ENDPOINTS.EXAMS.LIST_SCHOOL(schoolId)

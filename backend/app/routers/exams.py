@@ -115,6 +115,15 @@ def get_exam_by_code(
     return exams_controller.get_student_exam_by_code(code, current_user, db)
 
 
+@router.get("/student/{exam_id}", response_model=StudentExamResponse)
+def get_student_exam(
+    exam_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return exams_controller.get_student_exam_by_id(exam_id, current_user, db)
+
+
 @router.get("/{exam_id}", response_model=ExamResponse)
 def get_exam(
     exam_id: str,
