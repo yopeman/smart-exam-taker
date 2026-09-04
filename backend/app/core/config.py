@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     EMAIL_PORT: int = 587
     EMAIL_USER: str = ""
     EMAIL_PASS: str = ""
-    EMAIL_FROM: str = "Smart Exam Taker <support@sexam.com>"
+    EMAIL_FROM: str = "Smart Exam Taker <support@smartexam.com>"
 
     GROQ_API_KEY: str = ""
     GROQ_MODEL: str = "openai/gpt-oss-120b"
