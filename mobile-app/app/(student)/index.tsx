@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
@@ -8,14 +8,17 @@ import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { useTheme } from '../../lib/theme/theme';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
 
 export default function StudentDashboard() {
   const router = useRouter();
   const { user, logout, isAuthenticated } = useAuthStore();
-  const { availableExams, fetchAvailableExams, isLoading: examsLoading } = useExamStore();
+  const { availableExams, fetchExamByCode, isLoading: examsLoading } = useExamStore();
   const { myAttempts, fetchMyAttempts, isLoading: attemptsLoading, syncOfflineData, setOfflineStatus } = useAttemptStore();
   const { isOnline } = useOnlineStatus();
   const { theme } = useTheme();
+  const [examCode, setExamCode] = useState('');
+  const [codeError, setCodeError] = useState('');
 
   useEffect(() => {
     setOfflineStatus(!isOnline);
@@ -23,7 +26,6 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchAvailableExams();
       fetchMyAttempts();
     }
   }, [isAuthenticated]);
@@ -37,6 +39,21 @@ export default function StudentDashboard() {
   const handleLogout = async () => {
     await logout();
     router.replace('/(auth)/login');
+  };
+
+  const handleTakeExam = async () => {
+    const code = examCode.trim();
+    if (!code) {
+      setCodeError('Please enter an exam code');
+      return;
+    }
+    setCodeError('');
+    const exam = await fetchExamByCode(code);
+    if (exam) {
+      router.push(`/(student)/exams/${exam.id}`);
+    } else {
+      setCodeError('Exam not found or not available');
+    }
   };
 
   const availableCount = availableExams.filter(e => e.is_available && !e.has_attempted).length;
@@ -86,17 +103,27 @@ export default function StudentDashboard() {
             Quick Actions
           </Text>
 
-          <TouchableOpacity
-            style={[styles.actionCard, { backgroundColor: theme.colors.surface }]}
-            onPress={() => router.push('/(student)/exams')}
-          >
+          <Card variant="elevated" style={styles.actionCard}>
             <Text style={[styles.actionTitle, { color: theme.colors.text, fontSize: theme.typography.sizes.md }]}>
-              View Available Exams
+              Take an Exam
             </Text>
             <Text style={[styles.actionSubtitle, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.sm }]}>
-              Take exams assigned to you
+              Enter your exam code to get started
             </Text>
-          </TouchableOpacity>
+            <Input
+              label="Exam Code"
+              value={examCode}
+              onChangeText={setExamCode}
+              error={codeError}
+              placeholder="e.g. EXAM0001"
+              autoCapitalize="characters"
+            />
+            <Button
+              title={examsLoading ? 'Checking...' : 'Start Exam'}
+              onPress={handleTakeExam}
+              loading={examsLoading}
+            />
+          </Card>
 
           <TouchableOpacity
             style={[styles.actionCard, { backgroundColor: theme.colors.surface }]}

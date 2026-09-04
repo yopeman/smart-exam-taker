@@ -31,6 +31,7 @@ export const API_ENDPOINTS = {
     REACHABLE: '/exams/reachable',
     SHARED_CREATED: '/exams/shared/created',
     AVAILABLE: '/exams/available',
+    BY_CODE: (code: string) => `/exams/code/${code}`,
     GET: (id: string) => `/exams/${id}`,
     CREATE: (schoolId: string) => `/exams/schools/${schoolId}`,
     UPDATE: (id: string) => `/exams/${id}`,

@@ -7,6 +7,7 @@ interface ExamState {
   availableExams: StudentExam[];
   myExams: Exam[];
   currentExam: Exam | null;
+  examByCode: StudentExam | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -15,10 +16,12 @@ interface ExamActions {
   fetchAvailableExams: () => Promise<void>;
   fetchMyExams: () => Promise<void>;
   fetchExamById: (id: string) => Promise<void>;
+  fetchExamByCode: (code: string) => Promise<StudentExam | null>;
   startExam: (id: string) => Promise<void>;
   completeExam: (id: string) => Promise<void>;
   clearError: () => void;
   setCurrentExam: (exam: Exam | null) => void;
+  setExamByCode: (exam: StudentExam | null) => void;
 }
 
 export const useExamStore = create<ExamState & ExamActions>()(
@@ -27,6 +30,7 @@ export const useExamStore = create<ExamState & ExamActions>()(
       availableExams: [],
       myExams: [],
       currentExam: null,
+      examByCode: null,
       isLoading: false,
       error: null,
 
@@ -69,6 +73,21 @@ export const useExamStore = create<ExamState & ExamActions>()(
         }
       },
 
+      fetchExamByCode: async (code: string) => {
+        set({ isLoading: true, error: null });
+        try {
+          const exam = await examsApi.getExamByCode(code);
+          set({ examByCode: exam, isLoading: false });
+          return exam;
+        } catch (error: any) {
+          set({ 
+            error: error.message || 'Failed to fetch exam', 
+            isLoading: false 
+          });
+          return null;
+        }
+      },
+
       startExam: async (id: string) => {
         set({ isLoading: true, error: null });
         try {
@@ -97,6 +116,7 @@ export const useExamStore = create<ExamState & ExamActions>()(
 
       clearError: () => set({ error: null }),
       setCurrentExam: (exam) => set({ currentExam: exam }),
+      setExamByCode: (exam) => set({ examByCode: exam }),
     }),
     {
       name: 'exam-storage',
