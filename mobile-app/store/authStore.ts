@@ -26,7 +26,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       user: null,
       token: null,
       isAuthenticated: false,
-      isLoading: false,
+      isLoading: true,
       error: null,
 
       login: async (credentials: LoginRequest) => {
@@ -81,7 +81,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       loadUser: async () => {
         const token = await secureStorage.getItem('auth_token');
         if (!token) {
-          set({ isAuthenticated: false, user: null });
+          set({ isAuthenticated: false, user: null, isLoading: false });
           return;
         }
 
