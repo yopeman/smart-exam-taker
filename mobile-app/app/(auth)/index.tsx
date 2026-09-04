@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
@@ -6,26 +6,23 @@ import { useTheme } from '../../lib/theme/theme';
 
 export default function AuthIndex() {
   const router = useRouter();
-  const { isAuthenticated, isLoading, loadUser } = useAuthStore();
+  const { isAuthenticated, loadUser } = useAuthStore();
   const { theme } = useTheme();
+  const [hasChecked, setHasChecked] = useState(false);
 
   useEffect(() => {
-    checkAuth();
+    loadUser().then(() => setHasChecked(true));
   }, []);
 
-  const checkAuth = async () => {
-    await loadUser();
-  };
-
   useEffect(() => {
-    if (!isLoading) {
+    if (hasChecked) {
       if (isAuthenticated) {
         router.replace('/(student)');
       } else {
         router.replace('/(auth)/login');
       }
     }
-  }, [isAuthenticated, isLoading]);
+  }, [hasChecked]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
