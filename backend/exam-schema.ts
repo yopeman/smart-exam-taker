@@ -110,7 +110,9 @@ export const ShortAnswerQuestionSchema = z.object({
 });
 
 // 6. Union of all question types (discriminated by 'type')
-export const QuestionSchema = z.discriminatedUnion('type', [
+// Note: refined schemas become ZodEffects, which z.discriminatedUnion cannot
+// accept at runtime, so we use z.union (each schema is type-literal keyed).
+export const QuestionSchema = z.union([
   MCQQuestionSchema,
   TrueFalseQuestionSchema,
   MatchingQuestionSchema,

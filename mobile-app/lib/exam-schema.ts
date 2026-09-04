@@ -112,18 +112,15 @@ export const ShortAnswerQuestionSchema = z.object({
 });
 
 // 6. Union of all question types (discriminated by 'type')
-// Note: refined schemas become ZodEffects, so we cast to keep the
-// discriminated-union runtime typing without fighting the generics.
-export const QuestionSchema: z.ZodType<any> = z.discriminatedUnion(
-  'type',
-  [
-    MCQQuestionSchema,
-    TrueFalseQuestionSchema,
-    MatchingQuestionSchema,
-    BlankSpaceQuestionSchema,
-    ShortAnswerQuestionSchema,
-  ] as any
-) as unknown as z.ZodType<any>;
+// Note: refined schemas become ZodEffects, which z.discriminatedUnion cannot
+// accept at runtime, so we use z.union (each schema is type-literal keyed).
+export const QuestionSchema: z.ZodType<any> = z.union([
+  MCQQuestionSchema,
+  TrueFalseQuestionSchema,
+  MatchingQuestionSchema,
+  BlankSpaceQuestionSchema,
+  ShortAnswerQuestionSchema,
+]) as unknown as z.ZodType<any>;
 
 // 7. Unified Question container
 export const QuestionContainerSchema = z.object({
