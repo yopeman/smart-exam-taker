@@ -16,7 +16,7 @@ function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
 
-  const [formData, setFormData] = useState({ name: '', password: '', confirmPassword: '' })
+  const [formData, setFormData] = useState({ name: '', currentPassword: '', password: '', confirmPassword: '' })
   const [errors, setErrors] = useState({})
   const [isSaving, setIsSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
@@ -56,6 +56,9 @@ function ProfilePage() {
       newErrors.name = 'Name is required'
     }
     if (formData.password) {
+      if (!formData.currentPassword) {
+        newErrors.currentPassword = 'Current password is required to set a new password'
+      }
       if (formData.password.length < 8) {
         newErrors.password = 'Password must be at least 8 characters'
       } else if (formData.password !== formData.confirmPassword) {
@@ -74,14 +77,23 @@ function ProfilePage() {
     setSaveMessage('')
     try {
       const payload = { name: formData.name.trim() }
-      if (formData.password) payload.password = formData.password
-
       const updated = await apiFetch('/auth/profile', {
         method: 'PATCH',
         body: JSON.stringify(payload),
       })
       setProfile(updated)
-      setFormData((prev) => ({ ...prev, password: '', confirmPassword: '' }))
+
+      if (formData.password) {
+        await apiFetch('/auth/change-password', {
+          method: 'POST',
+          body: JSON.stringify({
+            current_password: formData.currentPassword,
+            new_password: formData.password,
+          }),
+        })
+      }
+
+      setFormData((prev) => ({ ...prev, currentPassword: '', password: '', confirmPassword: '' }))
       setSaveMessage('Profile updated successfully')
     } catch (err) {
       setSaveMessage(err.message || 'Failed to update profile')
@@ -212,6 +224,26 @@ function ProfilePage() {
               } bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-800 outline-none transition-all`}
             />
             {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+          </div>
+
+          <div>
+            <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Current Password <span className="text-gray-400 font-normal">(required to change password)</span>
+            </label>
+            <input
+              type="password"
+              id="currentPassword"
+              name="currentPassword"
+              value={formData.currentPassword}
+              onChange={handleInputChange}
+              placeholder="••••••••"
+              className={`w-full px-4 py-3 rounded-lg border ${
+                errors.currentPassword
+                  ? 'border-red-300 focus:border-red-500'
+                  : 'border-gray-300 dark:border-gray-600 focus:border-indigo-500'
+              } bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-800 outline-none transition-all`}
+            />
+            {errors.currentPassword && <p className="mt-1 text-sm text-red-600">{errors.currentPassword}</p>}
           </div>
 
           <div>
