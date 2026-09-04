@@ -279,7 +279,7 @@ def get_student_exam_by_code(code: str, user: User, db: Session) -> StudentExamR
         status=exam.status,
         duration_minutes=exam.duration_minutes,
         document_content=None,
-        questions=None,
+        questions=exam.questions,
         instructor=(
             {"id": instructor.id, "name": instructor.name}
             if instructor is not None
@@ -343,7 +343,7 @@ def get_student_exam_by_id(exam_id: str, user: User, db: Session) -> StudentExam
         status=exam.status,
         duration_minutes=exam.duration_minutes,
         document_content=None,
-        questions=None,
+        questions=exam.questions,
         instructor=(
             {"id": instructor.id, "name": instructor.name}
             if instructor is not None
