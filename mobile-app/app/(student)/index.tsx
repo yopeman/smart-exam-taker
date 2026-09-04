@@ -50,7 +50,7 @@ export default function StudentDashboard() {
     setCodeError('');
     const exam = await fetchExamByCode(code);
     if (exam) {
-      router.push(`/(student)/exams/${exam.id}`);
+      router.push({ pathname: '/(student)/exams/[id]', params: { id: exam.id, code } });
     } else {
       setCodeError('Exam not found or not available');
     }

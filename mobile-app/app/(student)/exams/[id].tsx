@@ -9,16 +9,19 @@ import { Button } from '../../../components/ui/Button';
 export default function ExamDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { currentExam, fetchExamById, isLoading } = useExamStore();
+  const { examByCode, fetchExamByCode, isLoading } = useExamStore();
   const { theme } = useTheme();
 
   const examId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const code = Array.isArray(params.code) ? params.code[0] : params.code;
 
   useEffect(() => {
-    if (examId) {
-      fetchExamById(examId);
+    if (code) {
+      fetchExamByCode(code);
     }
-  }, [examId]);
+  }, [code]);
+
+  const currentExam = examByCode;
 
   if (isLoading) {
     return (
@@ -150,7 +153,7 @@ export default function ExamDetailScreen() {
         <View style={styles.buttonContainer}>
           <Button
             title="Start Exam"
-            onPress={() => router.push(`/(student)/exams/take?id=${examId}`)}
+            onPress={() => router.push({ pathname: '/(student)/exams/take', params: { id: examId, code } })}
             style={styles.startButton}
           />
           <Button

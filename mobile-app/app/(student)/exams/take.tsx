@@ -13,12 +13,12 @@ import { Input } from '../../../components/ui/Input';
 export default function TakeExamScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { currentExam, fetchExamById } = useExamStore();
+  const { examByCode: currentExam, fetchExamByCode } = useExamStore();
   const { startAttempt, currentAttempt, updateCurrentAttemptAnswers, submitAttempt } = useAttemptStore();
   const { theme } = useTheme();
   const [permission, requestPermission] = useCameraPermissions();
   
-  const examId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const code = Array.isArray(params.code) ? params.code[0] : params.code;
   
   const [step, setStep] = useState<'info' | 'camera' | 'questions' | 'submit'>('info');
   const [timeLeft, setTimeLeft] = useState(0);
@@ -37,10 +37,10 @@ export default function TakeExamScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (examId) {
-      fetchExamById(examId);
+    if (code) {
+      fetchExamByCode(code);
     }
-  }, [examId]);
+  }, [code]);
 
   useEffect(() => {
     if (currentExam && step === 'questions') {
