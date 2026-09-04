@@ -12,7 +12,7 @@ import { Input } from '../../../components/ui/Input';
 export default function TakeExamScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { currentExam, fetchStudentExamById } = useExamStore();
+  const { examByCode: currentExam, fetchStudentExamById } = useExamStore();
   const { startAttempt, currentAttempt, updateCurrentAttemptAnswers, submitAttempt } = useAttemptStore();
   const { theme } = useTheme();
   const [permission, requestPermission] = useCameraPermissions();
@@ -119,10 +119,10 @@ export default function TakeExamScreen() {
     setPreview(false);
   };
 
-  const handleConfirmPhoto = () => {
+  const handleConfirmPhoto = async () => {
     if (!faceImage) return;
     setPreview(false);
-    setStep('questions');
+    await handleStartExam();
   };
 
   const handleStartExam = async () => {
@@ -428,7 +428,7 @@ export default function TakeExamScreen() {
           <Button
             title="View Results"
             onPress={() => router.push('/(student)/attempts')}
-            style={styles.button}
+            style={[styles.button, { marginBottom: 14 }]}
           />
           <Button
             title="Back to Dashboard"

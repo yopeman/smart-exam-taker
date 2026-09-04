@@ -72,11 +72,9 @@ export const attemptsApi = {
     });
 
     if (faceImage) {
-      formData.append('face', {
-        uri: faceImage.uri,
-        type: faceImage.type,
-        name: faceImage.name,
-      } as any);
+      const response = await fetch(faceImage.uri);
+      const blob = await response.blob();
+      formData.append('face', blob, faceImage.name);
     }
 
     const response = await apiClient.upload<Attempt>(
