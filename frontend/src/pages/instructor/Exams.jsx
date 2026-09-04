@@ -116,40 +116,6 @@ function buildTotal(groups) {
   }
 }
 
-function BlankAnswersInput({ value, onChange, className, placeholder }) {
-  const parsedValue = Array.isArray(value) ? value.join(', ') : value || ''
-
-  const [draft, setDraft] = useState(parsedValue)
-
-  useEffect(() => {
-    setDraft((prev) => {
-      const normalized = prev
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean)
-        .join(', ')
-      return normalized === parsedValue ? prev : parsedValue
-    })
-  }, [parsedValue])
-
-  return (
-    <input
-      placeholder={placeholder}
-      value={draft}
-      onChange={(e) => {
-        setDraft(e.target.value)
-        onChange(
-          e.target.value
-            .split(',')
-            .map((s) => s.trim())
-            .filter(Boolean)
-        )
-      }}
-      className={className}
-    />
-  )
-}
-
 function QuestionBuilder({ groups, setGroups }) {
   const countBefore = (gi) =>
     groups.slice(0, gi).reduce((n, g) => n + (g.questions?.length || 0), 0)
@@ -516,18 +482,21 @@ function QuestionBuilder({ groups, setGroups }) {
             {innerType === 'blank_space' && (
               <div className="space-y-2">
                 <span className="block text-xs text-gray-500">
-                  Accepted answers (one per blank, comma-separated per blank)
+                  Accepted answer (one per blank)
                 </span>
-                {inner.correct_answers.map((blanks, bi) => (
+                {(inner.correct_answers?.length
+                  ? inner.correct_answers
+                  : ['']
+                ).map((blank, bi) => (
                   <div key={bi} className="flex items-center gap-2">
                     <span className="text-xs text-gray-400">Blank {bi + 1}:</span>
-                    <BlankAnswersInput
-                      placeholder="Accepted answers (comma separated)"
-                      value={Array.isArray(blanks) ? blanks.join(', ') : blanks}
-                      onChange={(answers) =>
+                    <input
+                      placeholder="Accepted answer"
+                      value={Array.isArray(blank) ? blank.join(', ') : blank}
+                      onChange={(e) =>
                         updateInner(idx, {
                           correct_answers: inner.correct_answers.map((b, i) =>
-                            i === bi ? answers : b
+                            i === bi ? e.target.value : b
                           ),
                         })
                       }
@@ -549,7 +518,7 @@ function QuestionBuilder({ groups, setGroups }) {
                 <button
                   type="button"
                   onClick={() =>
-                    updateInner(idx, { correct_answers: [...inner.correct_answers, ['']] })
+                    updateInner(idx, { correct_answers: [...inner.correct_answers, ''] })
                   }
                   className="text-xs text-indigo-600 hover:underline"
                 >
