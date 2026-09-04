@@ -127,9 +127,7 @@ def create_exam(
                 detail="questions must be valid JSON",
             )
         try:
-            parsed_questions = [
-                q.model_dump() for q in questions_adapter.validate_python(raw)
-            ]
+            parsed_questions = questions_adapter.validate_python(raw).model_dump()
         except Exception as exc:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -398,9 +396,9 @@ def update_exam(
         exam.max_reserved_students = payload.max_reserved_students
     if payload.questions is not None:
         try:
-            exam.questions = [
-                q.model_dump() for q in questions_adapter.validate_python(payload.questions)
-            ]
+            exam.questions = questions_adapter.validate_python(
+                payload.questions
+            ).model_dump()
         except Exception as exc:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

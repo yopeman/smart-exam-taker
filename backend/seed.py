@@ -147,24 +147,73 @@ def seed_invitations(
 
 
 def _build_questions(subject: str) -> list[dict]:
-    return [
-        {
-            "type": "mcq",
-            "prompt": "What is 2 + 2?",
-            "options": [
-                {"text": "3", "is_correct": False},
-                {"text": "4", "is_correct": True},
-                {"text": "5", "is_correct": False},
-            ],
-            "multiple_correct": False,
-            "points": 5,
-        },
-        {
-            "type": "essay",
-            "prompt": f"Explain a core concept of {subject} briefly.",
-            "points": 10,
-        },
-    ]
+    return {
+        "questions": [
+            {
+                "scenario": None,
+                "questions": [
+                    {
+                        "id": "seed-mcq-1",
+                        "point": 5.0,
+                        "question": {
+                            "type": "mcq",
+                            "question": "What is 2 + 2?",
+                            "options": [
+                                {"letter": "A", "option": "3"},
+                                {"letter": "B", "option": "4"},
+                                {"letter": "C", "option": "5"},
+                            ],
+                            "correct_answer": "B",
+                        },
+                    },
+                    {
+                        "id": "seed-mcq-2",
+                        "point": 5.0,
+                        "question": {
+                            "type": "mcq",
+                            "question": "Which language powers the web?",
+                            "options": [
+                                {"letter": "A", "option": "Python"},
+                                {"letter": "B", "option": "JavaScript"},
+                                {"letter": "C", "option": "C++"},
+                            ],
+                            "correct_answer": "B",
+                        },
+                    },
+                    {
+                        "id": "seed-tf-1",
+                        "point": 3.0,
+                        "question": {
+                            "type": "true_false",
+                            "question": "The web was invented at CERN.",
+                            "correct_answer": True,
+                        },
+                    },
+                    {
+                        "id": "seed-blank-1",
+                        "point": 4.0,
+                        "question": {
+                            "type": "blank_space",
+                            "question": "HTTP stands for _____ Transfer Protocol.",
+                            "correct_answers": ["HyperText"],
+                        },
+                    },
+                    {
+                        "id": "seed-short-1",
+                        "point": 10.0,
+                        "question": {
+                            "type": "short_answer",
+                            "question": f"Briefly explain a core concept of {subject}.",
+                            "correct_answer": (
+                                "A clear, concise explanation covering the main idea. "
+                                "Accept any reasonable correct description."
+                            ),
+                        },
+                    },
+                ],
+            }
+        ]
+    }
 
 
 def seed_exams(
@@ -227,24 +276,53 @@ def seed_attempts(exams: list[Exam], students: list[User]) -> list[ExamAttempt]:
                 year_of_study=exam.year_of_study,
                 semester=exam.semester,
                 section=exam.section,
-                answers={"1": "4", "2": "Brief explanation text."},
+                answers={
+                    "seed-mcq-1": "B",
+                    "seed-mcq-2": "B",
+                    "seed-tf-1": True,
+                    "seed-blank-1": ["Hypertext"],
+                },
                 grading_details=[
                     {
-                        "question_id": 1,
-                        "type": "multiple_choice",
+                        "question_id": "seed-mcq-1",
+                        "type": "mcq",
+                        "point": 5.0,
+                        "correctness": "correct" if random.random() > 0.3 else "incorrect",
                         "score": round(random.uniform(0, 5), 2),
-                        "max_score": 5,
                     },
                     {
-                        "question_id": 2,
-                        "type": "essay",
+                        "question_id": "seed-mcq-2",
+                        "type": "mcq",
+                        "point": 5.0,
+                        "correctness": "correct" if random.random() > 0.3 else "incorrect",
+                        "score": round(random.uniform(0, 5), 2),
+                    },
+                    {
+                        "question_id": "seed-tf-1",
+                        "type": "true_false",
+                        "point": 3.0,
+                        "correctness": "correct" if random.random() > 0.3 else "incorrect",
+                        "score": round(random.uniform(0, 3), 2),
+                    },
+                    {
+                        "question_id": "seed-blank-1",
+                        "type": "blank_space",
+                        "point": 4.0,
+                        "correctness": "correct" if random.random() > 0.5 else "partial",
+                        "score": round(random.uniform(0, 4), 2),
+                    },
+                    {
+                        "question_id": "seed-short-1",
+                        "type": "short_answer",
+                        "point": 10.0,
+                        "correctness": "partial",
                         "score": round(random.uniform(0, 10), 2),
-                        "max_score": 10,
+                        "feedback": "Good attempt, could add more detail.",
                     },
                 ],
-                objective_score=round(random.uniform(0, 5), 2),
+                objective_score=round(random.uniform(0, 17), 2),
                 ai_score=round(random.uniform(0, 10), 2),
-                total_score=round(random.uniform(0, 15), 2),
+                total_score=round(random.uniform(0, 27), 2),
                 submitted_at=(
                     _now()
                     if status in (AttemptStatus.submitted, AttemptStatus.graded)

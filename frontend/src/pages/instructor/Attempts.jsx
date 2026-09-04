@@ -28,7 +28,7 @@ function formatDate(value) {
 
 function renderAnswer(detail) {
   const { type, answer } = detail
-  if (type === 'essay') {
+  if (type === 'short_answer' || type === 'essay') {
     return answer == null || answer === '' ? (
       <span className="italic text-gray-400">No answer submitted</span>
     ) : (
@@ -39,6 +39,15 @@ function renderAnswer(detail) {
     return (
       <span className="text-gray-800 dark:text-gray-200">
         {answer === true ? 'True' : answer === false ? 'False' : '—'}
+      </span>
+    )
+  }
+  if (type === 'matching' && answer && typeof answer === 'object') {
+    return (
+      <span className="text-gray-800 dark:text-gray-200">
+        {Object.entries(answer)
+          .map(([l, r]) => `${l}→${r}`)
+          .join(', ')}
       </span>
     )
   }
@@ -75,7 +84,7 @@ function AttemptDetail({ attempt, exam, onClose, onSaved }) {
   const details = attempt.grading_details || []
   const hasDetails = details.length > 0
 
-  const objectiveTypes = ['mcq', 'true_false', 'matching', 'fill_blank']
+  const objectiveTypes = ['mcq', 'true_false', 'matching', 'blank_space']
 
   const computed = useMemo(() => {
     let objective = 0
@@ -83,7 +92,7 @@ function AttemptDetail({ attempt, exam, onClose, onSaved }) {
     details.forEach((d, i) => {
       const s = Number(scores[i]) || 0
       if (objectiveTypes.includes(d.type)) objective += s
-      else if (d.type === 'essay') ai += s
+      else if (d.type === 'short_answer' || d.type === 'essay') ai += s
       else objective += s
     })
     return { objective, ai, total: objective + ai }
@@ -215,20 +224,26 @@ function AttemptDetail({ attempt, exam, onClose, onSaved }) {
                   >
                     <div className="mb-2 flex items-center justify-between">
                       <p className="font-medium text-gray-900 dark:text-white">
-                        Q{d.index + 1}
+                        {d.question_id || `Q${d.index + 1}`}
                         <span className="ml-2 text-xs font-normal text-gray-500">
-                          {d.type} · {d.points} pts
+                          {d.type} · {d.point ?? d.points} pts
                         </span>
                       </p>
-                      {d.correct != null && (
+                      {d.correctness != null && (
                         <span
                           className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                            d.correct
+                            d.correctness === 'correct'
                               ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
-                              : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+                              : d.correctness === 'partial'
+                                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                                : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
                           }`}
                         >
-                          {d.correct ? 'Correct' : 'Incorrect'}
+                          {d.correctness === 'correct'
+                            ? 'Correct'
+                            : d.correctness === 'partial'
+                              ? 'Partial'
+                              : 'Incorrect'}
                         </span>
                       )}
                     </div>

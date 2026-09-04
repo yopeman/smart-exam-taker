@@ -78,7 +78,7 @@ def submit_attempt(
     db: Session = Depends(get_db),
 ):
     return attempts_controller.submit_attempt(
-        attempt_id, payload.answers, current_user, db
+        attempt_id, payload.answer_map(), current_user, db
     )
 
 

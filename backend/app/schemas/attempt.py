@@ -4,6 +4,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models import AttemptStatus
+from app.schemas.question import StudentAttempt
 
 
 class StartAttemptRequest(BaseModel):
@@ -18,7 +19,18 @@ class StartAttemptRequest(BaseModel):
 
 
 class SubmitAttemptRequest(BaseModel):
+    """Student answers. Accepts either the canonical `attempts` list (each with a
+    `question_id` and a unique `id`) or a flat `answers` dict keyed by question id.
+    """
+
+    attempts: list[StudentAttempt] | None = None
     answers: dict[str, Any] = Field(default_factory=dict)
+
+    def answer_map(self) -> dict[str, Any]:
+        """Collapse `attempts` into a dict keyed by question_id."""
+        if self.attempts:
+            return {a.question_id: a.attempt for a in self.attempts}
+        return self.answers
 
 
 class UpdateAttemptScoresRequest(BaseModel):

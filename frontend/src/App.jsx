@@ -15,6 +15,8 @@ import Attempts from './pages/instructor/Attempts'
 import Invitations from './pages/instructor/Invitations'
 import StudentDashboard from './pages/student/Dashboard'
 import StudentExams from './pages/student/Exams'
+import TakeExam from './pages/student/TakeExam'
+import AttemptResult from './pages/student/AttemptResult'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminLogin from './pages/admin/sb/AdminLogin'
 import RegisteredSchoolsList from './pages/admin/sb/RegisteredSchoolsList'
@@ -98,6 +100,22 @@ function App() {
         element={
           <ProtectedRoute allowedRoles={['student']}>
             <StudentExams />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/exams/:examId/take"
+        element={
+          <ProtectedRoute allowedRoles={['student']}>
+            <TakeExam />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/attempts/:attemptId"
+        element={
+          <ProtectedRoute allowedRoles={['student']}>
+            <AttemptResult />
           </ProtectedRoute>
         }
       />

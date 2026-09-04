@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { apiClient } from '../../lib/apiClient'
 import DashboardNavbar from '../../components/DashboardNavbar'
-import { BookOpen, Clock, Building2, User as UserIcon } from 'lucide-react'
+import { BookOpen, Clock, Building2, User as UserIcon, Play } from 'lucide-react'
 
 const STATUS_STYLES = {
   processing: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200',
@@ -26,6 +27,7 @@ export default function Exams() {
   const [exams, setExams] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const navigate = useNavigate()
 
   useEffect(() => {
     setLoading(true)
@@ -113,6 +115,17 @@ export default function Exams() {
                     </span>
                   )}
                 </div>
+
+                {['submitted', 'scheduled', 'started'].includes(exam.status) && (
+                  <div className="mt-3 border-t border-gray-100 pt-3 dark:border-gray-700">
+                    <button
+                      onClick={() => navigate(`/student/exams/${exam.id}/take`)}
+                      className="flex items-center gap-1 rounded-md bg-indigo-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
+                    >
+                      <Play className="h-3.5 w-3.5" /> Take Exam
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

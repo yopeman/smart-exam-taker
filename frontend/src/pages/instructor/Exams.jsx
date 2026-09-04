@@ -37,29 +37,63 @@ function StatusBadge({ status }) {
   )
 }
 
+function uid(prefix = 'q') {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+}
+
 function blankQuestion(type) {
+  const common = { point: 1 }
   switch (type) {
     case 'mcq':
       return {
-        type: 'mcq',
-        prompt: '',
-        points: 1,
-        multiple_correct: false,
-        options: [
-          { text: '', is_correct: false },
-          { text: '', is_correct: false },
-        ],
+        id: uid(),
+        ...common,
+        question: {
+          type: 'mcq',
+          question: '',
+          options: [
+            { letter: 'A', option: '' },
+            { letter: 'B', option: '' },
+          ],
+          correct_answer: '',
+        },
       }
     case 'true_false':
-      return { type: 'true_false', prompt: '', points: 1, correct_answer: true }
+      return {
+        id: uid(),
+        ...common,
+        question: { type: 'true_false', question: '', correct_answer: true },
+      }
     case 'matching':
-      return { type: 'matching', prompt: '', points: 1, pairs: [{ left: '', right: '' }] }
-    case 'fill_blank':
-      return { type: 'fill_blank', prompt: '', points: 1, text: '', blanks: [{ answers: [''] }] }
-    case 'essay':
-      return { type: 'essay', prompt: '', points: 1, model_answer: '', rubric: '' }
+      return {
+        id: uid(),
+        ...common,
+        question: {
+          type: 'matching',
+          question: '',
+          left_items: [''],
+          right_items: [''],
+          correct_mapping: {},
+        },
+      }
+    case 'blank_space':
+      return {
+        id: uid(),
+        ...common,
+        question: {
+          type: 'blank_space',
+          question: '',
+          correct_answers: [''],
+        },
+      }
+    case 'short_answer':
+      return {
+        id: uid(),
+        ...common,
+        question: { type: 'short_answer', question: '', correct_answer: '' },
+      }
     default:
-      return { type: 'mcq', prompt: '', points: 1, options: [{ text: '', is_correct: false }] }
+      return blankQuestion('mcq')
   }
 }
 
@@ -67,13 +101,25 @@ const QUESTION_TYPES = [
   { value: 'mcq', label: 'Multiple Choice' },
   { value: 'true_false', label: 'True / False' },
   { value: 'matching', label: 'Matching' },
-  { value: 'fill_blank', label: 'Fill in the Blank' },
-  { value: 'essay', label: 'Essay' },
+  { value: 'blank_space', label: 'Fill in the Blank' },
+  { value: 'short_answer', label: 'Short Answer' },
 ]
+
+function buildTotal(questions) {
+  return { questions: [{ scenario: null, questions }] }
+}
 
 function QuestionBuilder({ questions, setQuestions }) {
   const update = (idx, patch) => {
     setQuestions((qs) => qs.map((q, i) => (i === idx ? { ...q, ...patch } : q)))
+  }
+
+  const updateInner = (idx, patch) => {
+    setQuestions((qs) =>
+      qs.map((q, i) =>
+        i === idx ? { ...q, question: { ...q.question, ...patch } } : q
+      )
+    )
   }
 
   const addQuestion = () => {
@@ -90,243 +136,322 @@ function QuestionBuilder({ questions, setQuestions }) {
 
   return (
     <div className="space-y-4">
-      {questions.map((q, idx) => (
-        <div
-          key={idx}
-          className="rounded-md border border-gray-200 p-3 dark:border-gray-600"
-        >
-          <div className="mb-2 flex items-center gap-2">
-            <span className="text-xs font-semibold text-gray-500">#{idx + 1}</span>
-            <select
-              value={q.type}
-              onChange={(e) => changeType(idx, e.target.value)}
-              className="rounded-md border border-gray-300 px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-            >
-              {QUESTION_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-            <span className="text-xs font-semibold text-gray-500">Points</span>
-            <input
-              type="number"
-              min={0}
-              value={q.points}
-              onChange={(e) => update(idx, { points: Number(e.target.value) })}
-              title="Points"
-              className="w-20 rounded-md border border-gray-300 px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-            />
-            <button
-              type="button"
-              onClick={() => removeQuestion(idx)}
-              className="ml-auto text-xs text-red-600 hover:underline"
-            >
-              Remove
-            </button>
-          </div>
-
-          <input
-            placeholder="Question prompt"
-            value={q.prompt}
-            onChange={(e) => update(idx, { prompt: e.target.value })}
-            className="mb-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          />
-
-          {q.type === 'mcq' && (
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-                <input
-                  type="checkbox"
-                  checked={q.multiple_correct}
-                  onChange={(e) => update(idx, { multiple_correct: e.target.checked })}
-                />
-                Allow multiple correct answers
-              </label>
-              {q.options.map((opt, oi) => (
-                <div key={oi} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={opt.is_correct}
-                    onChange={(e) =>
-                      update(idx, {
-                        options: q.options.map((o, i) =>
-                          i === oi ? { ...o, is_correct: e.target.checked } : o
-                        ),
-                      })
-                    }
-                  />
-                  <input
-                    placeholder={`Option ${oi + 1}`}
-                    value={opt.text}
-                    onChange={(e) =>
-                      update(idx, {
-                        options: q.options.map((o, i) =>
-                          i === oi ? { ...o, text: e.target.value } : o
-                        ),
-                      })
-                    }
-                    className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      update(idx, { options: q.options.filter((_, i) => i !== oi) })
-                    }
-                    className="text-xs text-red-600 hover:underline"
-                  >
-                    x
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() =>
-                  update(idx, {
-                    options: [...q.options, { text: '', is_correct: false }],
-                  })
-                }
-                className="text-xs text-indigo-600 hover:underline"
+      {questions.map((q, idx) => {
+        const inner = q.question || {}
+        const innerType = inner.type || q.type
+        return (
+          <div
+            key={q.id || idx}
+            className="rounded-md border border-gray-200 p-3 dark:border-gray-600"
+          >
+            <div className="mb-2 flex items-center gap-2">
+              <span className="text-xs font-semibold text-gray-500">#{idx + 1}</span>
+              <select
+                value={innerType}
+                onChange={(e) => changeType(idx, e.target.value)}
+                className="rounded-md border border-gray-300 px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               >
-                + Add option
-              </button>
-            </div>
-          )}
-
-          {q.type === 'true_false' && (
-            <select
-              value={String(q.correct_answer)}
-              onChange={(e) => update(idx, { correct_answer: e.target.value === 'true' })}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-            >
-              <option value="true">True is correct</option>
-              <option value="false">False is correct</option>
-            </select>
-          )}
-
-          {q.type === 'matching' && (
-            <div className="space-y-2">
-              {q.pairs.map((p, pi) => (
-                <div key={pi} className="flex items-center gap-2">
-                  <input
-                    placeholder="Left"
-                    value={p.left}
-                    onChange={(e) =>
-                      update(idx, {
-                        pairs: q.pairs.map((x, i) =>
-                          i === pi ? { ...x, left: e.target.value } : x
-                        ),
-                      })
-                    }
-                    className="flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                  />
-                  <input
-                    placeholder="Right"
-                    value={p.right}
-                    onChange={(e) =>
-                      update(idx, {
-                        pairs: q.pairs.map((x, i) =>
-                          i === pi ? { ...x, right: e.target.value } : x
-                        ),
-                      })
-                    }
-                    className="flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      update(idx, { pairs: q.pairs.filter((_, i) => i !== pi) })
-                    }
-                    className="text-xs text-red-600 hover:underline"
-                  >
-                    x
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() =>
-                  update(idx, { pairs: [...q.pairs, { left: '', right: '' }] })
-                }
-                className="text-xs text-indigo-600 hover:underline"
-              >
-                + Add pair
-              </button>
-            </div>
-          )}
-
-          {q.type === 'fill_blank' && (
-            <div className="space-y-2">
+                {QUESTION_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+              <span className="text-xs font-semibold text-gray-500">Points</span>
               <input
-                placeholder="Passage / text (optional)"
-                value={q.text}
-                onChange={(e) => update(idx, { text: e.target.value })}
-                className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                type="number"
+                min={0}
+                value={q.point}
+                onChange={(e) => update(idx, { point: Number(e.target.value) })}
+                title="Points"
+                className="w-20 rounded-md border border-gray-300 px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               />
-              {q.blanks.map((b, bi) => (
-                <div key={bi} className="flex items-center gap-2">
-                  <input
-                    placeholder="Accepted answers (comma separated)"
-                    value={b.answers.join(', ')}
-                    onChange={(e) =>
-                      update(idx, {
-                        blanks: q.blanks.map((x, i) =>
-                          i === bi
-                            ? {
-                                answers: e.target.value
+              <button
+                type="button"
+                onClick={() => removeQuestion(idx)}
+                className="ml-auto text-xs text-red-600 hover:underline"
+              >
+                Remove
+              </button>
+            </div>
+
+            <input
+              placeholder="Question prompt"
+              value={inner.question || ''}
+              onChange={(e) => updateInner(idx, { question: e.target.value })}
+              className="mb-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+            />
+
+            {innerType === 'mcq' && (
+              <div className="space-y-2">
+                {inner.options.map((opt, oi) => (
+                  <div key={oi} className="flex items-center gap-2">
+                    <input
+                      placeholder="Letter (A, B, C...)"
+                      value={opt.letter}
+                      onChange={(e) =>
+                        updateInner(idx, {
+                          options: inner.options.map((o, i) =>
+                            i === oi ? { ...o, letter: e.target.value } : o
+                          ),
+                        })
+                      }
+                      className="w-16 rounded-md border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    />
+                    <input
+                      placeholder={`Option ${oi + 1}`}
+                      value={opt.option}
+                      onChange={(e) =>
+                        updateInner(idx, {
+                          options: inner.options.map((o, i) =>
+                            i === oi ? { ...o, option: e.target.value } : o
+                          ),
+                        })
+                      }
+                      className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    />
+                    <input
+                      type="radio"
+                      name={`correct-${idx}`}
+                      title="Mark as correct answer"
+                      checked={inner.correct_answer === opt.letter}
+                      onChange={(e) => {
+                        if (e.target.checked)
+                          updateInner(idx, { correct_answer: opt.letter })
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateInner(idx, {
+                          options: inner.options.filter((_, i) => i !== oi),
+                        })
+                      }
+                      className="text-xs text-red-600 hover:underline"
+                    >
+                      x
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateInner(idx, {
+                      options: [
+                        ...inner.options,
+                        { letter: String.fromCharCode(65 + (inner.options?.length || 0)), option: '' },
+                      ],
+                    })
+                  }
+                  className="text-xs text-indigo-600 hover:underline"
+                >
+                  + Add option
+                </button>
+                {(!inner.correct_answer ||
+                  (inner.options?.length > 0 &&
+                    !inner.options.some((o) => o.letter === inner.correct_answer))) && (
+                  <p className="text-xs text-amber-600">
+                    Select the correct answer using the radio button.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {innerType === 'true_false' && (
+              <select
+                value={String(inner.correct_answer)}
+                onChange={(e) =>
+                  updateInner(idx, { correct_answer: e.target.value === 'true' })
+                }
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="true">True is correct</option>
+                <option value="false">False is correct</option>
+              </select>
+            )}
+
+            {innerType === 'matching' && (
+              <div className="space-y-2">
+                <div>
+                  <span className="mb-1 block text-xs text-gray-500">Left items</span>
+                  {inner.left_items.map((left, li) => (
+                    <div key={li} className="mb-1 flex items-center gap-2">
+                      <input
+                        placeholder={`Left ${li + 1}`}
+                        value={left}
+                        onChange={(e) =>
+                          updateInner(idx, {
+                            left_items: inner.left_items.map((x, i) =>
+                              i === li ? e.target.value : x
+                            ),
+                          })
+                        }
+                        className="flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                      />
+                      <select
+                        title="Correct matching"
+                        value={inner.correct_mapping[li] ?? ''}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          const mapping = { ...inner.correct_mapping }
+                          if (val === '') {
+                            delete mapping[li]
+                          } else {
+                            Object.keys(mapping).forEach((k) => {
+                              if (mapping[k] === Number(val)) delete mapping[k]
+                            })
+                            mapping[li] = Number(val)
+                          }
+                          updateInner(idx, { correct_mapping: mapping })
+                        }}
+                        className="rounded-md border border-gray-300 px-2 py-1.5 text-xs dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                      >
+                        <option value="">Match to…</option>
+                        {inner.right_items.map((r, ri) => (
+                          <option key={ri} value={ri}>
+                            {ri + 1}. {r}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateInner(idx, {
+                            left_items: inner.left_items.filter((_, i) => i !== li),
+                            correct_mapping: Object.fromEntries(
+                              Object.entries(inner.correct_mapping).filter(
+                                ([k]) => Number(k) !== li
+                              )
+                            ),
+                          })
+                        }
+                        className="text-xs text-red-600 hover:underline"
+                      >
+                        x
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateInner(idx, {
+                        left_items: [...inner.left_items, ''],
+                      })
+                    }
+                    className="text-xs text-indigo-600 hover:underline"
+                  >
+                    + Add left item
+                  </button>
+                </div>
+                <div>
+                  <span className="mb-1 block text-xs text-gray-500">Right items</span>
+                  {inner.right_items.map((r, ri) => (
+                    <div key={ri} className="mb-1 flex items-center gap-2">
+                      <input
+                        placeholder={`Right ${ri + 1}`}
+                        value={r}
+                        onChange={(e) =>
+                          updateInner(idx, {
+                            right_items: inner.right_items.map((x, i) =>
+                              i === ri ? e.target.value : x
+                            ),
+                          })
+                        }
+                        className="flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const opts = inner.right_items.filter((_, i) => i !== ri)
+                          const mapping = { ...inner.correct_mapping }
+                          Object.keys(mapping).forEach((k) => {
+                            const v = mapping[k]
+                            if (v === ri) delete mapping[k]
+                            else if (v > ri) mapping[k] = v - 1
+                          })
+                          updateInner(idx, { right_items: opts, correct_mapping: mapping })
+                        }}
+                        className="text-xs text-red-600 hover:underline"
+                      >
+                        x
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateInner(idx, { right_items: [...inner.right_items, ''] })
+                    }
+                    className="text-xs text-indigo-600 hover:underline"
+                  >
+                    + Add right item
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {innerType === 'blank_space' && (
+              <div className="space-y-2">
+                <span className="block text-xs text-gray-500">
+                  Accepted answers (one per blank, comma-separated per blank)
+                </span>
+                {inner.correct_answers.map((blanks, bi) => (
+                  <div key={bi} className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400">Blank {bi + 1}:</span>
+                    <input
+                      placeholder="Accepted answers (comma separated)"
+                      value={Array.isArray(blanks) ? blanks.join(', ') : blanks}
+                      onChange={(e) =>
+                        updateInner(idx, {
+                          correct_answers: inner.correct_answers.map((b, i) =>
+                            i === bi
+                              ? e.target.value
                                   .split(',')
                                   .map((s) => s.trim())
-                                  .filter(Boolean),
-                              }
-                            : x
-                        ),
-                      })
-                    }
-                    className="flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      update(idx, { blanks: q.blanks.filter((_, i) => i !== bi) })
-                    }
-                    className="text-xs text-red-600 hover:underline"
-                  >
-                    x
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() =>
-                  update(idx, { blanks: [...q.blanks, { answers: [''] }] })
-                }
-                className="text-xs text-indigo-600 hover:underline"
-              >
-                + Add blank
-              </button>
-            </div>
-          )}
+                                  .filter(Boolean)
+                              : b
+                          ),
+                        })
+                      }
+                      className="flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateInner(idx, {
+                          correct_answers: inner.correct_answers.filter((_, i) => i !== bi),
+                        })
+                      }
+                      className="text-xs text-red-600 hover:underline"
+                    >
+                      x
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateInner(idx, { correct_answers: [...inner.correct_answers, ['']] })
+                  }
+                  className="text-xs text-indigo-600 hover:underline"
+                >
+                  + Add blank
+                </button>
+              </div>
+            )}
 
-          {q.type === 'essay' && (
-            <div className="space-y-2">
+            {innerType === 'short_answer' && (
               <textarea
-                placeholder="Model answer (optional)"
-                value={q.model_answer}
-                onChange={(e) => update(idx, { model_answer: e.target.value })}
+                placeholder="Model answer"
+                value={inner.correct_answer || ''}
+                onChange={(e) => updateInner(idx, { correct_answer: e.target.value })}
                 rows={2}
                 className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               />
-              <textarea
-                placeholder="Rubric (optional)"
-                value={q.rubric}
-                onChange={(e) => update(idx, { rubric: e.target.value })}
-                rows={2}
-                className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-              />
-            </div>
-          )}
-        </div>
-      ))}
+            )}
+          </div>
+        )
+      })}
 
       <button
         type="button"
@@ -359,7 +484,12 @@ function ExamFormModal({ schoolId, schools = [], exam, onClose, onSaved }) {
   const [file, setFile] = useState(null)
   const [documentContent, setDocumentContent] = useState('')
   const [questions, setQuestions] = useState(
-    isEdit && exam?.questions ? exam.questions : []
+    () => {
+      const initial = isEdit && exam?.questions ? exam.questions : []
+      if (Array.isArray(initial)) return []
+      const groups = initial.questions || []
+      return groups.flatMap((g) => g.questions || [])
+    }
   )
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -399,7 +529,7 @@ function ExamFormModal({ schoolId, schools = [], exam, onClose, onSaved }) {
           payload[k] = k === 'duration_minutes' ? Number(v) : v
         })
         payload.school_id = selectedSchoolId
-        if (questions.length > 0) payload.questions = questions
+        if (questions.length > 0) payload.questions = buildTotal(questions)
         await apiClient.patch(`/exams/${exam.id}`, payload)
       } else {
         const fd = new FormData()
@@ -420,7 +550,7 @@ function ExamFormModal({ schoolId, schools = [], exam, onClose, onSaved }) {
         } else if (source === 'document') {
           fd.append('document_content', documentContent)
         } else if (source === 'questions') {
-          fd.append('questions', JSON.stringify(questions))
+          fd.append('questions', JSON.stringify(buildTotal(questions)))
         }
 
         await apiClient.post(`/exams/schools/${selectedSchoolId}`, fd, {

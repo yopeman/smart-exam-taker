@@ -5,13 +5,15 @@ from sqlalchemy.orm import Session
 
 from app.models import AttemptStatus, Exam, ExamAttempt
 from app.schemas.question import (
-    EssayQuestion,
-    FillBlankQuestion,
+    BlankSpaceQuestion,
+    Correctness,
     MCQQuestion,
     MatchingQuestion,
-    QuestionType,
+    Question,
+    ShortAnswerQuestion,
+    TotalQuestions,
     TrueFalseQuestion,
-    to_question,
+    flatten_questions,
 )
 from app.services import ai
 
@@ -22,50 +24,116 @@ def _normalize(value: str) -> str:
     return value.strip().lower()
 
 
-def _grade_mcq(question: MCQQuestion, answer: object) -> tuple[bool, float]:
-    correct_indices = [
-        i for i, opt in enumerate(question.options) if opt.is_correct
-    ]
-    selected = answer if isinstance(answer, list) else [answer]
+def _grade_mcq(
+    question: MCQQuestion, answer: object, point: float
+) -> tuple[float, Correctness, str | None]:
+    if not isinstance(answer, str):
+        return 0.0, Correctness.incorrect, None
+    selected = answer.strip().upper()
+    if selected == question.correct_answer.upper():
+        return point, Correctness.correct, None
+    return 0.0, Correctness.incorrect, None
 
-    try:
-        selected_indices = [int(s) for s in selected]
-    except (TypeError, ValueError):
-        return False, 0.0
 
-    if question.multiple_correct:
-        correct = set(selected_indices) == set(correct_indices)
+def _grade_true_false(
+    question: TrueFalseQuestion, answer: object, point: float
+) -> tuple[float, Correctness, str | None]:
+    if isinstance(answer, bool) and answer == question.correct_answer:
+        return point, Correctness.correct, None
+    return 0.0, Correctness.incorrect, None
+
+
+def _grade_matching(
+    question: MatchingQuestion, answer: object, point: float
+) -> tuple[float, Correctness, str | None]:
+    if not isinstance(answer, dict):
+        return 0.0, Correctness.incorrect, None
+
+    left_keys = [int(k) for k in answer.keys()]
+    if set(left_keys) != set(range(len(question.left_items))):
+        return 0.0, Correctness.incorrect, None
+
+    correct = 0
+    for left_idx, right_idx in answer.items():
+        expected = question.correct_mapping.get(int(left_idx))
+        given = int(right_idx)
+        if expected == given:
+            correct += 1
+
+    ratio = correct / len(question.left_items) if question.left_items else 0.0
+    score = point * ratio
+    if ratio >= 1.0:
+        correctness = Correctness.correct
+    elif ratio > 0.0:
+        correctness = Correctness.partial
     else:
-        correct = len(selected_indices) == 1 and selected_indices[0] == correct_indices[0]
-    return correct, float(question.points) if correct else 0.0
+        correctness = Correctness.incorrect
+    feedback = None if correctness == Correctness.correct else "Partial credit awarded."
+    return score, correctness, feedback
 
 
-def _grade_true_false(question: TrueFalseQuestion, answer: object) -> tuple[bool, float]:
-    correct = isinstance(answer, bool) and answer == question.correct_answer
-    return correct, float(question.points) if correct else 0.0
+def _grade_blank_space(
+    question: BlankSpaceQuestion, answer: object, point: float
+) -> tuple[float, Correctness, str | None]:
+    if not isinstance(answer, list) or len(answer) != len(question.correct_answers):
+        return 0.0, Correctness.incorrect, None
 
-
-def _grade_matching(question: MatchingQuestion, answer: object) -> tuple[bool, float]:
-    if not isinstance(answer, list) or len(answer) != len(question.pairs):
-        return False, 0.0
     correct = 0
-    for expected, given in zip(question.pairs, answer):
-        if _normalize(str(given)) == _normalize(expected.right):
+    for expected, given in zip(question.correct_answers, answer):
+        if _normalize(str(given)) == _normalize(expected):
             correct += 1
-    ratio = correct / len(question.pairs) if question.pairs else 0.0
-    return correct == len(question.pairs), float(question.points) * ratio
+
+    ratio = correct / len(question.correct_answers)
+    score = point * ratio
+    if ratio >= 1.0:
+        correctness = Correctness.correct
+    elif ratio > 0.0:
+        correctness = Correctness.partial
+    else:
+        correctness = Correctness.incorrect
+    feedback = None if correctness == Correctness.correct else "Partial credit awarded."
+    return score, correctness, feedback
 
 
-def _grade_fill_blank(question: FillBlankQuestion, answer: object) -> tuple[bool, float]:
-    if not isinstance(answer, list) or len(answer) != len(question.blanks):
-        return False, 0.0
-    correct = 0
-    for blank, given in zip(question.blanks, answer):
-        acceptable = {_normalize(a) for a in blank.answers}
-        if _normalize(str(given)) in acceptable:
-            correct += 1
-    ratio = correct / len(question.blanks) if question.blanks else 0.0
-    return correct == len(question.blanks), float(question.points) * ratio
+def _grade_short_answer(
+    question: ShortAnswerQuestion,
+    answer: object,
+    point: float,
+    scenario: str | None,
+) -> tuple[float, Correctness, str | None]:
+    try:
+        grade = ai.grade_short_answer(
+            question,
+            str(answer or ""),
+            max_points=point,
+            scenario=scenario,
+        )
+        score = float(grade.score)
+        if score <= 0:
+            correctness = Correctness.incorrect
+        elif score >= point * 0.99:
+            correctness = Correctness.correct
+        else:
+            correctness = Correctness.partial
+        return score, correctness, grade.feedback
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.exception("AI short-answer grading failed: %s", exc)
+        return 0.0, Correctness.incorrect, "AI grading failed; manual review required."
+
+
+def _objective_grade(
+    question: Question, answer: object
+) -> tuple[float, Correctness, str | None]:
+    inner = question.question
+    if isinstance(inner, MCQQuestion):
+        return _grade_mcq(inner, answer, question.point)
+    if isinstance(inner, TrueFalseQuestion):
+        return _grade_true_false(inner, answer, question.point)
+    if isinstance(inner, MatchingQuestion):
+        return _grade_matching(inner, answer, question.point)
+    if isinstance(inner, BlankSpaceQuestion):
+        return _grade_blank_space(inner, answer, question.point)
+    return 0.0, Correctness.incorrect, None
 
 
 def grade_attempt(attempt_id: str, db: Session | None = None) -> ExamAttempt | None:
@@ -94,45 +162,51 @@ def grade_attempt(attempt_id: str, db: Session | None = None) -> ExamAttempt | N
             db.commit()
             return attempt
 
-        questions = []
-        for raw in exam.questions:
-            try:
-                questions.append(to_question(_raw_question(raw)))
-            except Exception as exc:  # pragma: no cover - defensive
-                logger.warning("Skipping invalid stored question: %s", exc)
+        try:
+            total = TotalQuestions(**exam.questions)
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning("Invalid stored question payload: %s", exc)
+            attempt.status = AttemptStatus.graded
+            attempt.graded_at = datetime.now(timezone.utc)
+            db.add(attempt)
+            db.commit()
+            return attempt
+
+        scenario_by_id: dict[str, str | None] = {}
+        for group in total.questions:
+            for q in group.questions:
+                scenario_by_id[q.id] = group.scenario
 
         answers = attempt.answers or {}
         grading_details: list[dict] = []
         objective_score = 0.0
         ai_score = 0.0
 
-        for index, question in enumerate(questions):
-            key = str(index)
+        for question in flatten_questions(total):
+            key = question.id
             answer = answers.get(key)
+            scenario = scenario_by_id.get(key)
             detail: dict = {
-                "index": index,
-                "type": question.type.value,
-                "points": question.points,
+                "question_id": key,
+                "type": question.question.type.value,
+                "point": question.point,
                 "answer": answer,
             }
 
-            if question.type in (
-                QuestionType.mcq,
-                QuestionType.true_false,
-                QuestionType.matching,
-                QuestionType.fill_blank,
-            ):
-                correct, score = _grade_objective(question, answer)
-                detail["correct"] = correct
-                detail["score"] = round(score, 2)
-                objective_score += score
-            elif question.type == QuestionType.essay:
-                score, feedback = _grade_essay(question, answer)
+            if isinstance(question.question, ShortAnswerQuestion):
+                score, correctness, feedback = _grade_short_answer(
+                    question.question, answer, question.point, scenario
+                )
+                detail["correctness"] = correctness.value
                 detail["score"] = round(score, 2)
                 detail["feedback"] = feedback
                 ai_score += score
             else:
-                detail["score"] = 0.0
+                score, correctness, feedback = _objective_grade(question, answer)
+                detail["correctness"] = correctness.value
+                detail["score"] = round(score, 2)
+                detail["feedback"] = feedback
+                objective_score += score
 
             grading_details.append(detail)
 
@@ -149,30 +223,3 @@ def grade_attempt(attempt_id: str, db: Session | None = None) -> ExamAttempt | N
     finally:
         if own_db:
             db.close()
-
-
-def _raw_question(raw: dict):
-    from app.schemas.question import RawQuestion
-
-    return RawQuestion(**raw)
-
-
-def _grade_objective(question, answer) -> tuple[bool, float]:
-    if question.type == QuestionType.mcq:
-        return _grade_mcq(question, answer)
-    if question.type == QuestionType.true_false:
-        return _grade_true_false(question, answer)
-    if question.type == QuestionType.matching:
-        return _grade_matching(question, answer)
-    if question.type == QuestionType.fill_blank:
-        return _grade_fill_blank(question, answer)
-    return False, 0.0
-
-
-def _grade_essay(question: EssayQuestion, answer: object) -> tuple[float, str]:
-    try:
-        grade = ai.grade_essay(question, str(answer or ""))
-        return float(grade.score), grade.feedback
-    except Exception as exc:  # pragma: no cover - defensive
-        logger.exception("AI essay grading failed: %s", exc)
-        return 0.0, "AI grading failed; manual review required."

@@ -38,6 +38,40 @@ export default function AttemptDetailScreen() {
     return status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ');
   };
 
+  const renderStudentAnswer = (detail: any) => {
+    const { type, answer } = detail;
+    if (type === 'short_answer' || type === 'essay') {
+      return answer == null || answer === '' ? 'No answer submitted' : String(answer);
+    }
+    if (type === 'true_false') {
+      return answer === true ? 'True' : answer === false ? 'False' : '—';
+    }
+    if (type === 'matching' && answer && typeof answer === 'object') {
+      const map = answer as Record<string, unknown>;
+      return Object.entries(map)
+        .map(([l, r]) => `${parseInt(l, 10) + 1}→${Number(r) + 1}`)
+        .join(', ');
+    }
+    if (answer == null) return 'No answer submitted';
+    if (Array.isArray(answer)) return answer.map(String).join(', ');
+    return String(answer);
+  };
+
+  const getCorrectnessColor = (correctness: string) => {
+    switch (correctness) {
+      case 'correct':
+        return theme.colors.success;
+      case 'partial':
+        return theme.colors.warning;
+      default:
+        return theme.colors.error;
+    }
+  };
+
+  const gradingDetails: any[] = Array.isArray(currentAttempt.grading_details)
+    ? currentAttempt.grading_details
+    : [];
+
   if (isLoading) {
     return (
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -199,16 +233,74 @@ export default function AttemptDetailScreen() {
           </Card>
         )}
 
-        {currentAttempt.grading_details && (
+        {gradingDetails.length > 0 && (
           <Card style={styles.card}>
             <Text style={[styles.sectionTitle, { color: theme.colors.text, fontSize: theme.typography.sizes.lg }]}>
               Grading Details
             </Text>
-            <Text style={[styles.detailsText, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.sm }]}>
-              {typeof currentAttempt.grading_details === 'string' 
-                ? currentAttempt.grading_details 
-                : JSON.stringify(currentAttempt.grading_details, null, 2)}
-            </Text>
+            {gradingDetails.map((d: any, i: number) => (
+              <View
+                key={i}
+                style={[
+                  styles.detailCard,
+                  { borderColor: theme.colors.border },
+                ]}
+              >
+                <View style={styles.detailHeader}>
+                  <Text style={[styles.detailTitle, { color: theme.colors.text, fontSize: theme.typography.sizes.sm }]}>
+                    {d.question_id || `Q${i + 1}`}
+                  </Text>
+                  {d.correctness != null && (
+                    <View
+                      style={[
+                        styles.correctnessBadge,
+                        { backgroundColor: getCorrectnessColor(d.correctness) + '20' },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.correctnessText,
+                          { color: getCorrectnessColor(d.correctness), fontSize: theme.typography.sizes.xs },
+                        ]}
+                      >
+                        {d.correctness}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                <Text style={[styles.detailMeta, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.xs }]}>
+                  {d.type} · {d.point ?? d.points} pts
+                </Text>
+
+                <Text style={[styles.detailLabel, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.xs }]}>
+                  Your Answer
+                </Text>
+                <Text style={[styles.detailValue, { color: theme.colors.text, fontSize: theme.typography.sizes.sm }]}>
+                  {renderStudentAnswer(d)}
+                </Text>
+
+                {d.feedback != null && (
+                  <>
+                    <Text style={[styles.detailLabel, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.xs }]}>
+                      Feedback
+                    </Text>
+                    <Text style={[styles.detailValue, { color: theme.colors.text, fontSize: theme.typography.sizes.sm }]}>
+                      {d.feedback}
+                    </Text>
+                  </>
+                )}
+
+                <View style={styles.scoreRow}>
+                  <Text style={[styles.scoreLabel, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.sm }]}>
+                    Score
+                  </Text>
+                  <Text style={[styles.scoreValue, { color: theme.colors.primary, fontSize: theme.typography.sizes.sm }]}>
+                    {Number(d.score).toFixed(1)} / {d.point ?? d.points}
+                  </Text>
+                </View>
+              </View>
+            ))}
           </Card>
         )}
 
@@ -307,6 +399,42 @@ const styles = StyleSheet.create({
   },
   detailsText: {
     lineHeight: 20,
+  },
+  detailCard: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  detailHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  detailTitle: {
+    fontWeight: '600',
+  },
+  correctnessBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  correctnessText: {
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  detailMeta: {
+    marginBottom: 8,
+  },
+  detailLabel: {
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginTop: 6,
+    marginBottom: 2,
+  },
+  detailValue: {
+    lineHeight: 18,
   },
   buttonContainer: {
     padding: 24,

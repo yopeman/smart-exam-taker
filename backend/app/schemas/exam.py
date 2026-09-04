@@ -3,10 +3,10 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from app.models import ExamStatus
-from app.schemas.question import QuestionList
+from app.schemas.question import TotalQuestions
 from app.schemas.user import MessageResponse
 
-questions_adapter: TypeAdapter[QuestionList] = TypeAdapter(QuestionList)
+questions_adapter: TypeAdapter[TotalQuestions] = TypeAdapter(TotalQuestions)
 
 
 class ExamUpdateRequest(BaseModel):
@@ -20,7 +20,7 @@ class ExamUpdateRequest(BaseModel):
     duration_minutes: int | None = Field(default=None, ge=1)
     max_students: int | None = Field(default=None, ge=0)
     max_reserved_students: int | None = Field(default=None, ge=0)
-    questions: list[dict] | None = None
+    questions: TotalQuestions | None = None
 
 
 class LimitedInstructor(BaseModel):
@@ -52,7 +52,7 @@ class StudentExamResponse(BaseModel):
     status: ExamStatus
     duration_minutes: int
     document_content: str | None = None
-    questions: QuestionList | None = None
+    questions: TotalQuestions | None = None
     instructor: LimitedInstructor | None
     school: LimitedSchool | None
     created_at: datetime
@@ -78,7 +78,7 @@ class ExamResponse(BaseModel):
     semester: str | None
     section: str | None
     document_content: str | None
-    questions: QuestionList
+    questions: TotalQuestions
     duration_minutes: int
     max_students: int | None
     max_reserved_students: int | None
