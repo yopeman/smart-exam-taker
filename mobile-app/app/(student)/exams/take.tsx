@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Image } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import * as ImagePicker from 'expo-image-picker';
 import { useExamStore } from '../../../store/examStore';
 import { useAttemptStore } from '../../../store/attemptStore';
 import { useTheme } from '../../../lib/theme/theme';
@@ -17,10 +16,12 @@ export default function TakeExamScreen() {
   const { startAttempt, currentAttempt, updateCurrentAttemptAnswers, submitAttempt } = useAttemptStore();
   const { theme } = useTheme();
   const [permission, requestPermission] = useCameraPermissions();
+  const cameraRef = useRef<CameraView>(null);
   
   const code = Array.isArray(params.code) ? params.code[0] : params.code;
   
   const [step, setStep] = useState<'info' | 'camera' | 'questions' | 'submit'>('info');
+  const [preview, setPreview] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [faceImage, setFaceImage] = useState<{ uri: string; type: string; name: string } | null>(null);
   const [studentInfo, setStudentInfo] = useState({
@@ -64,7 +65,7 @@ export default function TakeExamScreen() {
     return () => clearInterval(interval);
   }, [step, timeLeft]);
 
-  const handleInfoSubmit = () => {
+  const handleInfoSubmit = async () => {
     const newErrors: Record<string, string> = {};
     
     if (!studentInfo.firstName) newErrors.firstName = 'First name is required';
@@ -78,9 +79,16 @@ export default function TakeExamScreen() {
     
     setErrors({});
     setStep('camera');
+
+    if (!permission?.granted) {
+      const result = await requestPermission();
+      if (!result.granted) {
+        Alert.alert('Permission Required', 'Camera permission is required for face verification');
+      }
+    }
   };
 
-  const handleCameraPermission = async () => {
+  const handleTakePhoto = async () => {
     if (!permission?.granted) {
       const result = await requestPermission();
       if (!result.granted) {
@@ -88,31 +96,33 @@ export default function TakeExamScreen() {
         return;
       }
     }
-    setStep('camera');
-  };
 
-  const handleTakePicture = async () => {
-    // This would be implemented with actual camera
-    // For now, we'll use image picker as fallback
-    await handlePickImage();
-  };
+    if (!cameraRef.current) return;
 
-  const handlePickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.5,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      setFaceImage({
-        uri: result.assets[0].uri,
-        type: result.assets[0].type || 'image/jpeg',
-        name: 'face.jpg',
-      });
-      setStep('questions');
+    try {
+      const photo = await cameraRef.current.takePictureAsync({ quality: 0.5 });
+      if (photo?.uri) {
+        setFaceImage({
+          uri: photo.uri,
+          type: 'image/jpeg',
+          name: 'face.jpg',
+        });
+        setPreview(true);
+      }
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'Failed to capture photo');
     }
+  };
+
+  const handleRetake = () => {
+    setFaceImage(null);
+    setPreview(false);
+  };
+
+  const handleConfirmPhoto = () => {
+    if (!faceImage) return;
+    setPreview(false);
+    setStep('questions');
   };
 
   const handleStartExam = async () => {
@@ -255,32 +265,55 @@ export default function TakeExamScreen() {
 
         <View style={styles.cameraContainer}>
           <Card style={styles.cameraCard}>
-            <View style={[styles.cameraPlaceholder, { backgroundColor: theme.colors.surface }]}>
-              <Text style={[styles.cameraText, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.md }]}>
-                Camera Preview
-              </Text>
-            </View>
+            {preview && faceImage ? (
+              <Image source={{ uri: faceImage.uri }} style={styles.camera} resizeMode="cover" />
+            ) : permission?.granted ? (
+              <CameraView
+                ref={cameraRef}
+                style={styles.camera}
+                facing="front"
+                mirror
+              />
+            ) : (
+              <View style={[styles.cameraPlaceholder, { backgroundColor: theme.colors.surface }]}>
+                <Text style={[styles.cameraText, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.md }]}>
+                  Camera permission required
+                </Text>
+              </View>
+            )}
           </Card>
         </View>
 
         <View style={styles.buttonContainer}>
-          <Button
-            title="Take Photo"
-            onPress={handleCameraPermission}
-            style={styles.button}
-          />
-          <Button
-            title="Choose from Gallery"
-            onPress={handlePickImage}
-            variant="outline"
-            style={styles.button}
-          />
-          <Button
-            title="Cancel"
-            onPress={() => setStep('info')}
-            variant="outline"
-            style={styles.button}
-          />
+          {preview && faceImage ? (
+            <>
+              <Button
+                title="Confirm"
+                onPress={handleConfirmPhoto}
+                style={styles.button}
+              />
+              <Button
+                title="Retake"
+                onPress={handleRetake}
+                variant="outline"
+                style={styles.button}
+              />
+            </>
+          ) : (
+            <>
+              <Button
+                title="Take Photo"
+                onPress={handleTakePhoto}
+                style={styles.button}
+              />
+              <Button
+                title="Cancel"
+                onPress={() => setStep('info')}
+                variant="outline"
+                style={styles.button}
+              />
+            </>
+          )}
         </View>
       </View>
     );
@@ -452,6 +485,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: 12,
+  },
+  camera: {
+    flex: 1,
     borderRadius: 12,
   },
   cameraText: {
