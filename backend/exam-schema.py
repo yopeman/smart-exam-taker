@@ -26,7 +26,6 @@ class MCQQuestion(BaseModel):
 
     @field_validator('correct_answer')
     def validate_correct_answer(cls, v, info):
-        # Extract the letters from the options
         allowed_letters = [opt.letter for opt in info.data.get('options', [])]
         if v not in allowed_letters:
             raise ValueError(f'correct_answer "{v}" must match one of the option letters: {allowed_letters}')
@@ -40,7 +39,7 @@ class TrueFalseQuestion(BaseModel):
     correct_answer: bool              # True for "True", False for "False"
 
 
-## 3. Matching (fixed)
+## 3. Matching (with validator)
 class MatchingQuestion(BaseModel):
     type: Literal[QuestionType.MATCHING] = QuestionType.MATCHING
     left_items: List[str]             # e.g. ["A", "B", "C"]
@@ -72,7 +71,6 @@ class MatchingQuestion(BaseModel):
             raise ValueError('Each right item can be matched to at most one left item (unique mapping required).')
 
         return v
-
 
 
 ## 4. Fill‑in‑the‑blank (multiple blanks)
@@ -144,7 +142,7 @@ class Correctness(Enum):
 class AttemptEvaluation(BaseModel):
     student_attempt: StudentAttempt
     score: float                         # points earned (could be partial)
-    correctness: Correctness
+    correctness: Correctness             # use the Enum directly – clean and typesafe
     feedback: Optional[str] = None       # e.g., "Close, but missing 'Paris'"
 
 
