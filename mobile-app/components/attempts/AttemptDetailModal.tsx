@@ -1,18 +1,31 @@
 import React, { useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useAttemptStore } from '../../../store/attemptStore';
-import { useTheme } from '../../../lib/theme/theme';
-import { Card } from '../../../components/ui/Card';
-import { Button } from '../../../components/ui/Button';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Image,
+  Modal,
+  TouchableOpacity,
+} from 'react-native';
+import { useAttemptStore } from '../../store/attemptStore';
+import { useTheme } from '../../lib/theme/theme';
+import { Card } from '../ui/Card';
+import { Button } from '../ui/Button';
 
-export default function AttemptDetailScreen() {
-  const router = useRouter();
-  const params = useLocalSearchParams();
+interface AttemptDetailModalProps {
+  visible: boolean;
+  attemptId: string | null;
+  onClose: () => void;
+}
+
+export default function AttemptDetailModal({
+  visible,
+  attemptId,
+  onClose,
+}: AttemptDetailModalProps) {
   const { currentAttempt, fetchAttemptById, isLoading } = useAttemptStore();
   const { theme } = useTheme();
-
-  const attemptId = Array.isArray(params.id) ? params.id[0] : params.id;
 
   useEffect(() => {
     if (attemptId) {
@@ -134,41 +147,50 @@ export default function AttemptDetailScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <View style={styles.center}>
+      <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+        <View style={styles.overlay}>
           <Text style={[styles.loadingText, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.md }]}>
             Loading attempt...
           </Text>
         </View>
-      </View>
+      </Modal>
     );
   }
 
   if (!currentAttempt) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <View style={styles.center}>
-          <Text style={[styles.errorText, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.md }]}>
-            Attempt not found
-          </Text>
-          <Button
-            title="Go Back"
-            onPress={() => router.back()}
-            style={styles.backButton}
-          />
+      <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+        <View style={styles.overlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
+            <Text style={[styles.errorText, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.md }]}>
+              Attempt not found
+            </Text>
+            <Button
+              title="Close"
+              onPress={onClose}
+              style={styles.backButton}
+            />
+          </View>
         </View>
-      </View>
+      </Modal>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: theme.colors.text, fontSize: theme.typography.sizes['2xl'] }]}>
-            Attempt Details
-          </Text>
-        </View>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.overlay}>
+        <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
+          <ScrollView style={styles.scrollView}>
+            <View style={styles.header}>
+              <Text style={[styles.title, { color: theme.colors.text, fontSize: theme.typography.sizes['2xl'] }]}>
+                Attempt Details
+              </Text>
+              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                <Text style={[styles.closeButtonText, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.sm }]}>
+                  ✕
+                </Text>
+              </TouchableOpacity>
+            </View>
 
         <Card
           style={{ ...styles.schoolCard, borderLeftColor: school?.primary_color || theme.colors.border }}
@@ -445,23 +467,45 @@ export default function AttemptDetailScreen() {
 
         <View style={styles.buttonContainer}>
           <Button
-            title="Back to Attempts"
-            onPress={() => router.back()}
+            title="Close"
+            onPress={onClose}
             variant="outline"
             style={styles.button}
           />
         </View>
-      </ScrollView>
-    </View>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 640,
+    maxHeight: '88%',
+    borderRadius: 16,
+    padding: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 5,
+  },
   container: {
     flex: 1,
   },
   scrollView: {
-    flex: 1,
+    flexGrow: 0,
   },
   center: {
     flex: 1,
@@ -477,16 +521,25 @@ const styles = StyleSheet.create({
   backButton: {
   },
   header: {
-    padding: 24,
-    paddingTop: 60,
+    paddingBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   title: {
     fontWeight: 'bold',
+    flex: 1,
+  },
+  closeButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  closeButtonText: {
+    fontWeight: '600',
   },
   schoolCard: {
-    margin: 24,
-    marginTop: 0,
-    marginBottom: 16,
+    marginBottom: 12,
     borderLeftWidth: 4,
     borderLeftColor: '#E5E7EB',
   },
@@ -528,9 +581,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   card: {
-    margin: 24,
-    marginTop: 0,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   infoRow: {
     marginBottom: 16,

@@ -1,15 +1,15 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
 import { useAttemptStore } from '../../../store/attemptStore';
 import { useTheme } from '../../../lib/theme/theme';
 import { Card } from '../../../components/ui/Card';
 import { usePagination, Pagination } from '../../../components/ui/Pagination';
+import AttemptDetailModal from '../../../components/attempts/AttemptDetailModal';
 
 export default function AttemptsScreen() {
-  const router = useRouter();
   const { myAttempts, fetchMyAttempts, isLoading } = useAttemptStore();
   const { theme } = useTheme();
+  const [selectedAttemptId, setSelectedAttemptId] = useState<string | null>(null);
 
   const pagination = usePagination(myAttempts, 5);
 
@@ -67,7 +67,7 @@ export default function AttemptsScreen() {
             return (
               <TouchableOpacity
                 key={attempt.id}
-                onPress={() => router.push(`/(student)/attempts/${attempt.id}`)}
+                onPress={() => setSelectedAttemptId(attempt.id)}
               >
                 <Card
                   variant="elevated"
@@ -186,6 +186,12 @@ export default function AttemptsScreen() {
           onPageSizeChange={pagination.setPageSize}
         />
       </ScrollView>
+
+      <AttemptDetailModal
+        visible={!!selectedAttemptId}
+        attemptId={selectedAttemptId}
+        onClose={() => setSelectedAttemptId(null)}
+      />
     </View>
   );
 }
