@@ -307,89 +307,289 @@ function studentAnswerText(d) {
   return String(answer)
 }
 
-function exportPDF(attempts, examMap, options) {
-  const doc = new jsPDF()
-  const profile = options.filter((o) => o.key !== 'answers')
-  const withAnswers = options.some((o) => o.key === 'answers')
-
-  attempts.forEach((a, idx) => {
-    if (idx > 0) doc.addPage()
-    const exam = examMap[a.exam_id]
-
-    doc.setFontSize(16)
-    doc.text('Attempt Details', 14, 14)
-    doc.setFontSize(10)
-    doc.setTextColor(100)
-    doc.text(
-      `Attempt #${idx + 1} of ${attempts.length} · ${a.student_first_name} ${a.student_last_name}`,
-      14,
-      20
-    )
-    doc.setTextColor(0)
-
-    autoTable(doc, {
-      startY: 26,
-      theme: 'grid',
-      head: [['Field', 'Value']],
-      body: profile.map((o) => [o.label, o.value(a, exam)]),
-      styles: { fontSize: 10 },
-      headStyles: { fillColor: [79, 70, 229] },
-      columnStyles: { 0: { cellWidth: 50, fontStyle: 'bold' } },
+async function loadImageData(url) {
+  if (!url) return null
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return null
+    const blob = await res.blob()
+    if (!blob.type.startsWith('image/')) return null
+    return await new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result)
+      reader.onerror = () => resolve(null)
+      reader.readAsDataURL(blob)
     })
+  } catch {
+    return null
+  }
+}
 
-    const details = a.grading_details || []
-    if (withAnswers && details.length > 0) {
-      const questionMap = flattenExamQuestions(exam)
-      let y = doc.lastAutoTable.finalY + 10
-      doc.setFontSize(12)
-      doc.text('Answers & Grading', 14, y)
-      y += 4
+const CORRECTNESS_COLORS = {
+  correct: '#16a34a',
+  partial: '#d97706',
+  incorrect: '#dc2626',
+}
+
+async function exportPDF(attempts, examMap, options) {
+  const doc = new jsPDF()
+  const opts = new Set(options.map((o) => o.key))
+  const has = (k) => opts.has(k)
+
+  for (let i = 0; i < attempts.length; i++) {
+    const a = attempts[i]
+    if (i > 0) doc.addPage()
+    const exam = examMap[a.exam_id]
+    const school = exam?.school
+    const accent = school?.primary_color || '#4f46e5'
+    let y = 12
+
+    if (has('school') || has('exam')) {
+      doc.setFillColor(accent)
+      doc.rect(10, y, 2, 34, 'F')
+
+      let logoData = null
+      if (has('school') && school?.logo_url) {
+        logoData = await loadImageData(school.logo_url)
+      }
+
+      const textX = logoData ? 46 : 30
+      if (logoData) {
+        const fmt = logoData.startsWith('data:image/png') ? 'PNG' : 'JPEG'
+        doc.setDrawColor(190)
+        doc.addImage(logoData, fmt, 14, y + 2, 28, 28, undefined, 'FAST')
+        doc.rect(14, y + 2, 28, 28)
+      } else if (has('school') && school?.name) {
+        doc.setFillColor(accent)
+        doc.roundedRect(14, y + 4, 24, 24, 3, 3, 'F')
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(16)
+        doc.setTextColor(255)
+        doc.text(school.name.charAt(0).toUpperCase(), 26, y + 20, { align: 'center' })
+      }
+
+      let cy = y + 7
+      if (has('school') && school?.name) {
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(13)
+        doc.setTextColor(20)
+        doc.text(school.name, textX, cy)
+        cy += 6
+      }
+      if (has('school') && school?.location) {
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(9)
+        doc.setTextColor(120)
+        doc.text(school.location, textX, cy)
+        cy += 6
+      }
+      if (has('exam')) {
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(11)
+        doc.setTextColor(20)
+        doc.text(
+          `${exam?.title || 'Unknown exam'}${exam?.code ? `  (${exam.code})` : ''}`,
+          textX,
+          cy
+        )
+      }
+      y += 40
+    }
+
+    if (a.student_face_url) {
+      const faceData = await loadImageData(a.student_face_url)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(8)
+      doc.setTextColor(120)
+      doc.text('CAPTURED FACE', 14, y)
+      y += 2
+      if (faceData) {
+        const fmt = faceData.startsWith('data:image/png') ? 'PNG' : 'JPEG'
+        doc.setDrawColor(150)
+        doc.addImage(faceData, fmt, 14, y, 40, 40, undefined, 'FAST')
+        doc.rect(14, y, 40, 40)
+      } else {
+        doc.setDrawColor(150)
+        doc.roundedRect(14, y, 40, 40, 2, 2, 'S')
+        doc.setFont('helvetica', 'italic')
+        doc.setFontSize(8)
+        doc.setTextColor(120)
+        doc.text('(image unavailable)', 34, y + 20, { align: 'center' })
+      }
+      y += 46
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(120)
+      doc.text(
+        `Captured: ${a.face_captured_at ? formatDate(a.face_captured_at) : '—'}`,
+        14,
+        y
+      )
+      y += 7
+    }
+
+    const pairs = [
+      ['Student', has('student') ? `${a.student_first_name} ${a.student_last_name}`.trim() || '—' : null],
+      ['ID Number', has('student_id') ? a.student_id_number || '—' : null],
+      ['Department', has('department') ? a.department || '—' : null],
+      ['School', has('school') ? school?.name || '—' : null],
+      [
+        'Year / Semester / Section',
+        has('year_semester')
+          ? `${a.year_of_study || '—'} / ${a.semester || '—'} / ${a.section || '—'}`
+          : null,
+      ],
+      ['Status', has('status') ? a.status : null],
+    ]
+    const gridRows = []
+    for (let r = 0; r < pairs.length; r += 2) {
+      const left = pairs[r]
+      const right = pairs[r + 1]
+      const cell = (v) => ({ content: v, styles: { fontSize: 10 } })
+      const label = (l) => ({
+        content: l.toUpperCase(),
+        styles: { fontStyle: 'bold', fontSize: 8, textColor: [120, 120, 120] },
+      })
+      gridRows.push([
+        label(left[0]),
+        cell(left[1] ?? ''),
+        label(right ? right[0] : ''),
+        cell(right ? (right[1] ?? '') : ''),
+      ])
+    }
+    if (gridRows.length > 0) {
       autoTable(doc, {
         startY: y,
         theme: 'grid',
-        head: [['Question', 'Type', 'Correct Answer', 'Student Answer', 'Score', 'Result']],
-        body: details.map((d) => {
-          const q = questionMap[d.question_id]
-          const inner = q?.question || q
-          return [
-            (q ? inner?.question || q.id : d.question_id) || `Q${d.index + 1}`,
-            d.type,
-            correctAnswerText(q),
-            studentAnswerText(d),
-            `${Number(d.score ?? 0).toFixed(1)} / ${d.point ?? d.points}`,
-            d.correctness || '—',
-          ]
-        }),
-        styles: { fontSize: 9 },
-        headStyles: { fillColor: [79, 70, 229] },
+        body: gridRows,
+        margin: { left: 10, right: 10 },
         columnStyles: {
-          0: { cellWidth: 55 },
-          1: { cellWidth: 25 },
-          2: { cellWidth: 40 },
-          3: { cellWidth: 40 },
-          4: { cellWidth: 22 },
+          0: { cellWidth: 28 },
+          1: { cellWidth: 62 },
+          2: { cellWidth: 32 },
+          3: { cellWidth: 58 },
         },
       })
-      if (doc.lastAutoTable.finalY > 280) {
-        const fb = details.some((d) => d.feedback != null)
-        if (fb) {
-          doc.addPage()
-          autoTable(doc, {
-            startY: 14,
-            theme: 'grid',
-            head: [['Question', 'Feedback']],
-            body: details.map((d) => [
-              questionMap[d.question_id]?.question?.question || d.question_id || `Q${d.index + 1}`,
-              d.feedback != null ? d.feedback : '—',
-            ]),
-            styles: { fontSize: 9 },
-            headStyles: { fillColor: [79, 70, 229] },
-            columnStyles: { 0: { cellWidth: 60 } },
-          })
-        }
-      }
+      y = doc.lastAutoTable.finalY + 6
     }
-  })
+
+    const scoreCols = [
+      ['Objective', has('objective_score') ? a.objective_score : null],
+      ['AI', has('ai_score') ? a.ai_score : null],
+      ['Total', has('total_score') ? a.total_score : null],
+    ].filter(([, v]) => v !== null)
+    if (scoreCols.length > 0) {
+      autoTable(doc, {
+        startY: y,
+        theme: 'grid',
+        head: [scoreCols.map(([l]) => l)],
+        body: [scoreCols.map(([, v]) => String(v ?? '—'))],
+        styles: { halign: 'center', fontSize: 13 },
+        headStyles: { fillColor: accent, fontSize: 9 },
+        margin: { left: 10, right: 10 },
+      })
+      y = doc.lastAutoTable.finalY + 6
+    }
+
+    const timeline = [
+      ['Started', has('started_at') ? formatDate(a.started_at) : null],
+      ['Submitted', has('submitted_at') ? formatDate(a.submitted_at) : null],
+      ['Graded', has('graded_at') ? formatDate(a.graded_at) : null],
+    ].filter(([, v]) => v)
+    if (timeline.length > 0) {
+      autoTable(doc, {
+        startY: y,
+        theme: 'plain',
+        body: timeline.map(([l, v]) => [
+          { content: l, styles: { fontStyle: 'bold', fontSize: 10 } },
+          { content: v, styles: { fontSize: 10 } },
+        ]),
+        columnStyles: { 0: { cellWidth: 30 } },
+        margin: { left: 10, right: 10 },
+      })
+      y = doc.lastAutoTable.finalY + 6
+    }
+
+    const details = a.grading_details || []
+    if (has('answers') && details.length > 0) {
+      const questionMap = flattenExamQuestions(exam)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(12)
+      doc.setTextColor(20)
+      doc.text('Answers & Grading', 14, y)
+      y += 2
+
+      const labelCell = (l) => ({
+        content: l.toUpperCase(),
+        styles: { fontStyle: 'bold', fontSize: 8, textColor: [140, 140, 140] },
+      })
+
+      details.forEach((d, di) => {
+        const q = questionMap[d.question_id]
+        const inner = q?.question || q
+        const questionTitle =
+          (q ? inner?.question || q.id : d.question_id) || `Q${d.index + 1}`
+        const correctness = d.correctness || 'incorrect'
+        const cColor = CORRECTNESS_COLORS[correctness] || CORRECTNESS_COLORS.incorrect
+        const point = d.point ?? d.points
+        const correctnessLabel =
+          correctness === 'correct'
+            ? 'CORRECT'
+            : correctness === 'partial'
+              ? 'PARTIAL'
+              : 'INCORRECT'
+
+        autoTable(doc, {
+          startY: y,
+          theme: 'grid',
+          styles: { fontSize: 9 },
+          margin: { left: 10, right: 10 },
+          body: [
+            [
+              { content: `#${di + 1}  ${questionTitle}`, styles: { fontStyle: 'bold', fontSize: 10 } },
+              {
+                content: `${correctnessLabel} · ${point} pts`,
+                styles: { halign: 'right', fontStyle: 'bold', fontSize: 8, textColor: cColor },
+              },
+            ],
+            [
+              labelCell('Question ID'),
+              { content: q?.id ? String(q.id) : '—', styles: { fontSize: 9 } },
+            ],
+            [
+              labelCell('Correct Answer'),
+              { content: correctAnswerText(q), styles: { fontSize: 9 } },
+            ],
+            [
+              labelCell('Student Answer'),
+              { content: studentAnswerText(d), styles: { fontSize: 9 } },
+            ],
+            [
+              labelCell('Feedback'),
+              {
+                content: d.feedback != null ? d.feedback : '—',
+                styles: { fontSize: 9 },
+              },
+            ],
+            [
+              { content: 'SCORE', styles: { fontStyle: 'bold', fontSize: 9 } },
+              {
+                content: `${Number(d.score ?? 0).toFixed(1)} / ${point}`,
+                styles: { halign: 'right', fontSize: 9 },
+              },
+            ],
+          ],
+          columnStyles: { 0: { cellWidth: 38 } },
+        })
+        y = doc.lastAutoTable.finalY + 6
+      })
+    }
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    doc.setTextColor(130)
+    doc.text(`Attempt ${i + 1} of ${attempts.length}`, 105, 291, { align: 'center' })
+  }
 
   doc.save(`attempts_${exportStamp()}.pdf`)
 }
@@ -412,17 +612,17 @@ function ExportModal({ attempts, examMap, onClose }) {
     )
   }
 
-  const runExport = () => {
+  const runExport = async () => {
     const columns = options.filter((o) => selected.includes(o.key))
     if (format === 'csv') exportCSV(attempts, examMap, columns)
     else if (format === 'xls') exportXLS(attempts, examMap, columns)
-    else exportPDF(attempts, examMap, columns)
+    else await exportPDF(attempts, examMap, columns)
     onClose()
   }
 
   const formats = [
     { key: 'csv', title: 'CSV', desc: 'Comma-separated table' },
-    { key: 'xls', title: 'Excel (.xlsx)', desc: 'Same columns as CSV, real .xlsx file' },
+    { key: 'xls', title: 'Excel', desc: 'Same columns as CSV, real .xlsx file' },
     { key: 'pdf', title: 'PDF', desc: 'One page per attempt with detailed content' },
   ]
 
