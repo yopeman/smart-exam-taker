@@ -563,14 +563,17 @@ export default function TakeExamScreen() {
               return (
                 <View key={qn.id || index}>
                   {showScenario && (
-                    <Card style={styles.scenarioCard}>
-                      <Text style={[styles.scenarioLabel, { color: theme.colors.primary }]}>
-                        Passage
-                      </Text>
-                      <Text style={[styles.scenarioText, { color: theme.colors.text }]}>
-                        {qn.scenario}
-                      </Text>
-                    </Card>
+                    <View>
+                      <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+                      <Card style={styles.scenarioCard}>
+                        <Text style={[styles.scenarioLabel, { color: theme.colors.primary }]}>
+                          Passage
+                        </Text>
+                        <Text style={[styles.scenarioText, { color: theme.colors.text }]}>
+                          {qn.scenario}
+                        </Text>
+                      </Card>
+                    </View>
                   )}
                   {showImages && (
                     <Card style={styles.scenarioCard}>
@@ -818,6 +821,11 @@ const styles = StyleSheet.create({
     marginTop: 0,
     marginBottom: 16,
     borderLeftWidth: 3,
+  },
+  divider: {
+    height: 1,
+    marginHorizontal: 0,
+    marginBottom: 16,
   },
   scenarioLabel: {
     fontWeight: '700',
