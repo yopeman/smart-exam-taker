@@ -235,12 +235,21 @@ export function normalizeQuestion(container: any): NormalizedQuestion | null {
   return base;
 }
 
+function shuffle<T>(arr: T[]): T[] {
+  const next = [...arr];
+  for (let i = next.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [next[i], next[j]] = [next[j], next[i]];
+  }
+  return next;
+}
+
 export function flattenExamQuestions(payload: any): NormalizedQuestion[] {
   if (!payload) return [];
-  const groups = Array.isArray(payload) ? payload : payload.questions || [];
+  const groups = shuffle(Array.isArray(payload) ? payload : payload.questions || []);
   const out: NormalizedQuestion[] = [];
   for (const group of groups) {
-    for (const q of group.questions || []) {
+    for (const q of shuffle(group.questions || [])) {
       const normalized = normalizeQuestion(q);
       if (normalized) {
         normalized.scenario = group.scenario;
