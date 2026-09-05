@@ -142,7 +142,7 @@ function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-3xl mx-auto">
+      <div className="px-4 sm:px-6 lg:px-8 py-8 mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Profile</h1>
           <p className="text-gray-600 dark:text-gray-400">Manage your account details and security</p>

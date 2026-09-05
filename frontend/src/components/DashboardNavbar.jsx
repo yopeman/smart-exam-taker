@@ -5,7 +5,9 @@ import { useInstructorAuth } from '../contexts/InstructorAuthContext'
 
 function DashboardNavbar({ title, userEmail, onLogout, showProfileButtons = true }) {
   const navigate = useNavigate()
-  const { logout } = useInstructorAuth()
+  const { user, logout } = useInstructorAuth()
+
+  const displayEmail = userEmail || user?.email
 
   const handleLogout = () => {
     logout()
@@ -18,14 +20,22 @@ function DashboardNavbar({ title, userEmail, onLogout, showProfileButtons = true
           <div className="flex items-center">
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h1>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 overflow-x-auto">
             <ThemeToggle />
-            {userEmail && <span className="text-sm text-gray-600 dark:text-gray-400">{userEmail}</span>}
+            {user?.role && (
+              <button
+                onClick={() => navigate(`/${user.role}/dashboard`)}
+                className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+              >
+                Home
+              </button>
+            )}
             {showProfileButtons && (
               <>
                 <button
                   onClick={() => navigate('/profile')}
                   className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  title={displayEmail}
                 >
                   Profile
                 </button>
