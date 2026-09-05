@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.file import File
 
-router = APIRouter()
+router = APIRouter(prefix="/files", tags=["files"])
 
 
 @router.post("/upload")

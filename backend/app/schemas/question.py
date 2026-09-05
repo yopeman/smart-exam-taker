@@ -131,6 +131,7 @@ class SubQuestions(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     scenario: str | None = None
+    scenario_image_ids: list[str] | None = None
     questions: list[Question] = Field(min_length=1)
 
 
@@ -215,6 +216,7 @@ class StudentSubQuestions(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     scenario: str | None = None
+    scenario_image_ids: list[str] | None = None
     questions: list[StudentQuestion] = Field(min_length=1)
 
 

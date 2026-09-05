@@ -217,8 +217,8 @@ function QuestionBuilder({ groups, setGroups }) {
           headers: { 'Content-Type': 'multipart/form-data' },
         })
         
-        if (response.data?.id) {
-          imageIds.push(response.data.id)
+        if (response?.id) {
+          imageIds.push(response.id)
         }
       } catch (err) {
         console.error('Failed to upload image:', err)
@@ -707,8 +707,11 @@ function ExamFormModal({ schoolId, schools = [], exam, onClose, onSaved }) {
           payload[k] = k === 'duration_minutes' ? Number(v) : v
         })
         payload.school_id = selectedSchoolId
-        if (groups.reduce((n, g) => n + (g.questions?.length || 0), 0) > 0)
-          payload.questions = buildTotal(groups)
+        if (groups.reduce((n, g) => n + (g.questions?.length || 0), 0) > 0) {
+          const questionsData = buildTotal(groups)
+          console.log('Saving questions with image IDs:', questionsData)
+          payload.questions = questionsData
+        }
         await apiClient.patch(`/exams/${exam.id}`, payload)
       } else {
         const fd = new FormData()

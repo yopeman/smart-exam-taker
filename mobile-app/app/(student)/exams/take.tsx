@@ -176,7 +176,11 @@ export default function TakeExamScreen() {
       if (!currentExam?.questions) return;
 
       const imageIds: string[] = [];
-      currentExam.questions.forEach((group: any) => {
+      const questionsData = Array.isArray(currentExam.questions) 
+        ? currentExam.questions 
+        : currentExam.questions.questions || [];
+      
+      questionsData.forEach((group: any) => {
         if (group.scenario_image_ids && Array.isArray(group.scenario_image_ids)) {
           imageIds.push(...group.scenario_image_ids);
         }
