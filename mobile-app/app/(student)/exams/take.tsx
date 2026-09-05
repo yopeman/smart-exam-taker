@@ -666,16 +666,16 @@ export default function TakeExamScreen() {
               </Text>
             </Card>
           )}
-        </ScrollView>
 
-        <View style={styles.submitContainer}>
-          <Button
-            title="Submit Exam"
-            onPress={handleSubmit}
-            loading={isSubmitting}
-            style={styles.submitButton}
-          />
-        </View>
+          <View style={styles.submitContainer}>
+            <Button
+              title="Submit Exam"
+              onPress={handleSubmit}
+              loading={isSubmitting}
+              style={styles.submitButton}
+            />
+          </View>
+        </ScrollView>
 
         {modalImage && (
           <Modal
