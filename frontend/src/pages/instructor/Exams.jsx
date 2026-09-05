@@ -118,6 +118,42 @@ function buildTotal(groups) {
 }
 
 function QuestionBuilder({ groups, setGroups }) {
+  const [scenarioImages, setScenarioImages] = useState({})
+
+  useEffect(() => {
+    const fetchImages = async () => {
+      const imageIds = new Set()
+      groups.forEach((g) => {
+        if (g.scenario_image_ids) {
+          g.scenario_image_ids.forEach((id) => imageIds.add(id))
+        }
+      })
+
+      setScenarioImages((prevImages) => {
+        const imagesMap = { ...prevImages }
+        imageIds.forEach((id) => {
+          if (!prevImages[id]) {
+            apiClient.get(`/files/${id}`)
+              .then((response) => {
+                if (response.data?.data) {
+                  setScenarioImages((prev) => ({
+                    ...prev,
+                    [id]: `data:image/jpeg;base64,${response.data.data}`,
+                  }))
+                }
+              })
+              .catch((err) => {
+                console.error(`Failed to fetch image ${id}:`, err)
+              })
+          }
+        })
+        return imagesMap
+      })
+    }
+
+    fetchImages()
+  }, [groups])
+
   const countBefore = (gi) =>
     groups.slice(0, gi).reduce((n, g) => n + (g.questions?.length || 0), 0)
 
@@ -276,9 +312,17 @@ function QuestionBuilder({ groups, setGroups }) {
                 <div className="flex flex-wrap gap-2">
                   {group.scenario_image_ids.map((imageId) => (
                     <div key={imageId} className="relative">
-                      <div className="h-16 w-16 rounded-md border border-gray-300 bg-gray-200 dark:border-gray-600 dark:bg-gray-700 flex items-center justify-center">
-                        <span className="text-xs text-gray-500">Image</span>
-                      </div>
+                      {scenarioImages[imageId] ? (
+                        <img
+                          src={scenarioImages[imageId]}
+                          alt="Scenario"
+                          className="h-16 w-16 rounded-md border border-gray-300 object-cover dark:border-gray-600"
+                        />
+                      ) : (
+                        <div className="h-16 w-16 rounded-md border border-gray-300 bg-gray-200 dark:border-gray-600 dark:bg-gray-700 flex items-center justify-center">
+                          <span className="text-xs text-gray-500">Loading...</span>
+                        </div>
+                      )}
                       <button
                         type="button"
                         onClick={() => removeImage(gi, imageId)}
