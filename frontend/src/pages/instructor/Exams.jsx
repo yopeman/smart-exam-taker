@@ -682,13 +682,20 @@ function QuestionBuilder({ groups, setGroups }) {
       </button>
 
       {modalImage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-          <div className="relative max-w-4xl max-h-[90vh] overflow-auto">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+          onClick={() => setModalImage(null)}
+        >
+          <div
+            className="relative max-w-4xl max-h-[90vh] overflow-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <img
               src={modalImage}
               alt="Enlarged"
               style={{ transform: `scale(${zoom})`, transition: 'transform 0.2s' }}
-              className="max-w-full max-h-[90vh] object-contain"
+              className="max-w-full max-h-[90vh] object-contain cursor-pointer"
+              onClick={() => setModalImage(null)}
             />
             <button
               type="button"

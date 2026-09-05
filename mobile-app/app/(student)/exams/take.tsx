@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Image, Modal } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useExamStore } from '../../../store/examStore';
@@ -158,6 +158,8 @@ export default function TakeExamScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [questions, setQuestions] = useState<any[]>([]);
   const [scenarioImages, setScenarioImages] = useState<Record<string, string>>({});
+  const [modalImage, setModalImage] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
     if (id) {
@@ -529,7 +531,12 @@ export default function TakeExamScreen() {
                           return (
                             <View key={imageId} style={styles.imageContainer}>
                               {imageUri ? (
-                                <Image source={{ uri: imageUri }} style={styles.scenarioImage} resizeMode="contain" />
+                                <TouchableOpacity onPress={() => {
+                                  setModalImage(imageUri);
+                                  setZoom(1);
+                                }}>
+                                  <Image source={{ uri: imageUri }} style={styles.scenarioImage} resizeMode="contain" />
+                                </TouchableOpacity>
                               ) : (
                                 <View style={[styles.scenarioImage, styles.imagePlaceholder]}>
                                   <Text style={[styles.imagePlaceholderText, { color: theme.colors.textSecondary }]}>
@@ -617,6 +624,49 @@ export default function TakeExamScreen() {
             style={styles.submitButton}
           />
         </View>
+
+        {modalImage && (
+          <Modal
+            visible={!!modalImage}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setModalImage(null)}
+          >
+            <TouchableOpacity
+              style={styles.modalOverlay}
+              activeOpacity={1}
+              onPress={() => setModalImage(null)}
+            >
+              <View style={styles.modalContent}>
+                <Image
+                  source={{ uri: modalImage || undefined }}
+                  style={[styles.modalImage, { transform: [{ scale: zoom }] }]}
+                  resizeMode="contain"
+                />
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={() => setModalImage(null)}
+                >
+                  <Text style={styles.closeButtonText}>✕</Text>
+                </TouchableOpacity>
+                <View style={styles.zoomControls}>
+                  <TouchableOpacity
+                    style={styles.zoomButton}
+                    onPress={() => setZoom((z) => Math.max(0.5, z - 0.25))}
+                  >
+                    <Text style={styles.zoomButtonText}>−</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.zoomButton}
+                    onPress={() => setZoom((z) => Math.min(3, z + 0.25))}
+                  >
+                    <Text style={styles.zoomButtonText}>+</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </Modal>
+        )}
       </View>
     );
   }
@@ -746,6 +796,57 @@ const styles = StyleSheet.create({
   },
   imagePlaceholderText: {
     fontSize: 12,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    height: '80%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalImage: {
+    width: '100%',
+    height: '100%',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: 'black',
+  },
+  zoomControls: {
+    position: 'absolute',
+    bottom: 40,
+    flexDirection: 'row',
+    gap: 20,
+  },
+  zoomButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  zoomButtonText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: 'black',
   },
   questionNumber: {
     fontWeight: '600',
