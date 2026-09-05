@@ -13,6 +13,20 @@ import {
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import * as XLSX from 'xlsx'
+import {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType,
+  BorderStyle,
+  ImageRun,
+  AlignmentType,
+  VerticalAlign,
+} from 'docx'
 
 const ATTEMPT_STATUS_STYLES = {
   in_progress: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
@@ -154,8 +168,7 @@ function escapeCSV(value) {
   return s
 }
 
-function downloadText(filename, mime, content) {
-  const blob = new Blob([content], { type: `${mime};charset=utf-8;` })
+function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
@@ -164,6 +177,10 @@ function downloadText(filename, mime, content) {
   link.click()
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
+}
+
+function downloadText(filename, mime, content) {
+  downloadBlob(new Blob([content], { type: `${mime};charset=utf-8;` }), filename)
 }
 
 const EXPORT_TABLE_OPTIONS = [
@@ -594,16 +611,362 @@ async function exportPDF(attempts, examMap, options) {
   doc.save(`attempts_${exportStamp()}.pdf`)
 }
 
+async function loadImageFiles(url) {
+  const data = await loadImageData(url)
+  if (!data) return null
+  const base64 = data.split(',')[1]
+  return {
+    type: data.startsWith('data:image/png') ? 'png' : 'jpg',
+    bytes: Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)),
+  }
+}
+
+const DOCX_COLORS = {
+  correct: '16a34a',
+  partial: 'd97706',
+  incorrect: 'dc2626',
+  muted: '6b7280',
+  dark: '111827',
+}
+
+function docxRun(text, opts = {}) {
+  return new TextRun({
+    text: String(text ?? ''),
+    bold: !!opts.bold,
+    italics: !!opts.italics,
+    size: opts.size ?? 18,
+    color: opts.color,
+  })
+}
+
+function docxPara(text, opts = {}) {
+  return new Paragraph({
+    children: [docxRun(text, opts)],
+    alignment: opts.align,
+    spacing: opts.spacing ?? { after: 40 },
+  })
+}
+
+function docxCell(content, opts = {}) {
+  return new TableCell({
+    children: Array.isArray(content) ? content : [content],
+    shading: opts.shading ? { fill: opts.shading } : undefined,
+    margins: { top: 80, bottom: 80, left: 140, right: 140 },
+    verticalAlign: VerticalAlign.CENTER,
+    width: opts.width ? { size: opts.width, type: WidthType.PERCENTAGE } : undefined,
+    borders: {
+      top: { style: BorderStyle.SINGLE, size: 4, color: 'D1D5DB' },
+      bottom: { style: BorderStyle.SINGLE, size: 4, color: 'D1D5DB' },
+      left: { style: BorderStyle.SINGLE, size: 4, color: 'D1D5DB' },
+      right: { style: BorderStyle.SINGLE, size: 4, color: 'D1D5DB' },
+    },
+  })
+}
+
+function docxLabel(text) {
+  return docxCell(docxPara(String(text).toUpperCase(), { bold: true, size: 16, color: DOCX_COLORS.muted }), {
+    shading: 'F9FAFB',
+    width: 28,
+  })
+}
+
+async function exportDOCX(attempts, examMap, options) {
+  const opts = new Set(options.map((o) => o.key))
+  const has = (k) => opts.has(k)
+  const children = []
+
+  for (let i = 0; i < attempts.length; i++) {
+    const a = attempts[i]
+    const exam = examMap[a.exam_id]
+    const school = exam?.school
+    const accent = (school?.primary_color || '#4f46e5').replace('#', '')
+
+    if (i > 0) {
+      children.push(
+        new Paragraph({ children: [new TextRun({ text: '' })], pageBreakBefore: true })
+      )
+    }
+
+    if (has('school') || has('exam')) {
+      let logo = null
+      if (has('school') && school?.logo_url) logo = await loadImageFiles(school.logo_url)
+      if (logo) {
+        children.push(
+          new Paragraph({
+            children: [
+              new ImageRun({
+                type: logo.type,
+                data: logo.bytes,
+                transformation: { width: 90, height: 90 },
+              }),
+            ],
+            spacing: { after: 120 },
+          })
+        )
+      }
+      if (has('school') && school?.name) {
+        children.push(
+          new Paragraph({
+            children: [docxRun(school.name, { bold: true, size: 28, color: accent })],
+            border: { left: { style: BorderStyle.SINGLE, size: 24, color: accent, space: 12 } },
+            spacing: { after: 40 },
+          })
+        )
+      }
+      if (has('school') && school?.location) {
+        children.push(
+          new Paragraph({
+            children: [docxRun(school.location, { size: 18, color: DOCX_COLORS.muted })],
+            border: { left: { style: BorderStyle.SINGLE, size: 24, color: accent, space: 12 } },
+            spacing: { after: 80 },
+          })
+        )
+      }
+      if (has('exam')) {
+        children.push(
+          new Paragraph({
+            children: [
+              docxRun(
+                `${exam?.title || 'Unknown exam'}${exam?.code ? `  (${exam.code})` : ''}`,
+                { bold: true, size: 22, color: DOCX_COLORS.dark }
+              ),
+            ],
+            border: { left: { style: BorderStyle.SINGLE, size: 24, color: accent, space: 12 } },
+            spacing: { after: 160 },
+          })
+        )
+      }
+    }
+
+    if (a.student_face_url) {
+      children.push(docxPara('CAPTURED FACE', { bold: true, size: 16, color: DOCX_COLORS.muted }))
+      const face = await loadImageFiles(a.student_face_url)
+      if (face) {
+        children.push(
+          new Paragraph({
+            children: [
+              new ImageRun({
+                type: face.type,
+                data: face.bytes,
+                transformation: { width: 130, height: 130 },
+              }),
+            ],
+            spacing: { after: 60 },
+          })
+        )
+      } else {
+        children.push(docxPara('(image unavailable)', { italics: true, size: 18, color: DOCX_COLORS.muted }))
+      }
+      children.push(
+        docxPara(`Captured: ${a.face_captured_at ? formatDate(a.face_captured_at) : '—'}`, {
+          size: 18,
+          color: DOCX_COLORS.muted,
+        })
+      )
+    }
+
+    const pairs = [
+      ['Student', has('student') ? `${a.student_first_name} ${a.student_last_name}`.trim() || '—' : null],
+      ['ID Number', has('student_id') ? a.student_id_number || '—' : null],
+      ['Department', has('department') ? a.department || '—' : null],
+      ['School', has('school') ? school?.name || '—' : null],
+      [
+        'Year / Semester / Section',
+        has('year_semester')
+          ? `${a.year_of_study || '—'} / ${a.semester || '—'} / ${a.section || '—'}`
+          : null,
+      ],
+      ['Status', has('status') ? a.status : null],
+    ]
+    const gridRows = []
+    for (let r = 0; r < pairs.length; r += 2) {
+      const left = pairs[r]
+      const right = pairs[r + 1]
+      gridRows.push(
+        new TableRow({
+          children: [
+            docxCell(docxPara(String(left[0]).toUpperCase(), { bold: true, size: 16, color: DOCX_COLORS.muted }), {
+              shading: 'F9FAFB',
+              width: 14,
+            }),
+            docxCell(docxPara(left[1] ?? '', { size: 18 }), { width: 36 }),
+            docxCell(docxPara(String(right ? right[0] : '').toUpperCase(), { bold: true, size: 16, color: DOCX_COLORS.muted }), {
+              shading: 'F9FAFB',
+              width: 16,
+            }),
+            docxCell(docxPara(right ? (right[1] ?? '') : '', { size: 18 }), { width: 34 }),
+          ],
+        })
+      )
+    }
+    if (gridRows.length > 0) {
+      children.push(new Table({ rows: gridRows, width: { size: 100, type: WidthType.PERCENTAGE } }))
+      children.push(new Paragraph({ children: [new TextRun({ text: '' })], spacing: { after: 120 } }))
+    }
+
+    const scoreCols = [
+      ['Objective', has('objective_score') ? a.objective_score : null],
+      ['AI', has('ai_score') ? a.ai_score : null],
+      ['Total', has('total_score') ? a.total_score : null],
+    ].filter(([, v]) => v !== null)
+    if (scoreCols.length > 0) {
+      const colWidth = 100 / scoreCols.length
+      children.push(
+        new Table({
+          rows: [
+            new TableRow({
+              children: scoreCols.map(([l]) =>
+                docxCell(docxPara(l, { bold: true, size: 18, color: 'FFFFFF' }), {
+                  shading: accent,
+                  width: colWidth,
+                })
+              ),
+            }),
+            new TableRow({
+              children: scoreCols.map(([, v]) =>
+                docxCell(
+                  docxPara(String(v ?? '—'), { bold: true, size: 26, align: AlignmentType.CENTER }),
+                  { width: colWidth }
+                )
+              ),
+            }),
+          ],
+          width: { size: 100, type: WidthType.PERCENTAGE },
+        })
+      )
+      children.push(new Paragraph({ children: [new TextRun({ text: '' })], spacing: { after: 120 } }))
+    }
+
+    const timeline = [
+      ['Started', has('started_at') ? formatDate(a.started_at) : null],
+      ['Submitted', has('submitted_at') ? formatDate(a.submitted_at) : null],
+      ['Graded', has('graded_at') ? formatDate(a.graded_at) : null],
+    ].filter(([, v]) => v)
+    if (timeline.length > 0) {
+      children.push(
+        new Table({
+          rows: timeline.map(
+            ([l, v]) =>
+              new TableRow({
+                children: [
+                  docxCell(docxPara(l, { bold: true, size: 18 }), { width: 30 }),
+                  docxCell(docxPara(v, { size: 18 }), { width: 70 }),
+                ],
+              })
+          ),
+          width: { size: 100, type: WidthType.PERCENTAGE },
+        })
+      )
+      children.push(new Paragraph({ children: [new TextRun({ text: '' })], spacing: { after: 120 } }))
+    }
+
+    const details = a.grading_details || []
+    if (has('answers') && details.length > 0) {
+      children.push(docxPara('Answers & Grading', { bold: true, size: 24, color: DOCX_COLORS.dark }))
+      const questionMap = flattenExamQuestions(exam)
+      details.forEach((d, di) => {
+        const q = questionMap[d.question_id]
+        const inner = q?.question || q
+        const questionTitle = (q ? inner?.question || q.id : d.question_id) || `Q${d.index + 1}`
+        const correctness = d.correctness || 'incorrect'
+        const cColor = DOCX_COLORS[correctness] || DOCX_COLORS.incorrect
+        const point = d.point ?? d.points
+        const correctnessLabel =
+          correctness === 'correct' ? 'CORRECT' : correctness === 'partial' ? 'PARTIAL' : 'INCORRECT'
+        const titleRun = docxRun(`#${di + 1}  ${questionTitle}`, { bold: true, size: 20 })
+        const badgeRun = docxRun(`${correctnessLabel} · ${point} pts`, { bold: true, size: 16, color: cColor })
+
+        children.push(
+          new Table({
+            rows: [
+              new TableRow({
+                children: [
+                  docxCell(new Paragraph({ children: [titleRun] }), { width: 72 }),
+                  docxCell(
+                    new Paragraph({
+                      children: [badgeRun],
+                      alignment: AlignmentType.RIGHT,
+                      spacing: { after: 0 },
+                    }),
+                    { width: 28 }
+                  ),
+                ],
+              }),
+              new TableRow({
+                children: [
+                  docxLabel('Question ID'),
+                  docxCell(docxPara(q?.id ? String(q.id) : '—', { size: 18 }), { width: 72 }),
+                ],
+              }),
+              new TableRow({
+                children: [
+                  docxLabel('Correct Answer'),
+                  docxCell(docxPara(correctAnswerText(q), { size: 18 }), { width: 72 }),
+                ],
+              }),
+              new TableRow({
+                children: [
+                  docxLabel('Student Answer'),
+                  docxCell(docxPara(studentAnswerText(d), { size: 18 }), { width: 72 }),
+                ],
+              }),
+              new TableRow({
+                children: [
+                  docxLabel('Feedback'),
+                  docxCell(docxPara(d.feedback != null ? d.feedback : '—', { size: 18 }), { width: 72 }),
+                ],
+              }),
+              new TableRow({
+                children: [
+                  docxCell(docxPara('SCORE', { bold: true, size: 18 }), { width: 28 }),
+                  docxCell(
+                    new Paragraph({
+                      children: [docxRun(`${Number(d.score ?? 0).toFixed(1)} / ${point}`, { size: 18 })],
+                      alignment: AlignmentType.RIGHT,
+                      spacing: { after: 0 },
+                    }),
+                    { width: 72 }
+                  ),
+                ],
+              }),
+            ],
+            width: { size: 100, type: WidthType.PERCENTAGE },
+          })
+        )
+        children.push(new Paragraph({ children: [new TextRun({ text: '' })], spacing: { after: 120 } }))
+      })
+    }
+
+    children.push(
+      docxPara(`Attempt ${i + 1} of ${attempts.length}`, {
+        size: 16,
+        color: '9CA3AF',
+        align: AlignmentType.CENTER,
+      })
+    )
+  }
+
+  const doc = new Document({
+    creator: 'Smart Exam Taker',
+    sections: [{ children }],
+  })
+  const blob = await Packer.toBlob(doc)
+  downloadBlob(blob, `attempts_${exportStamp()}.docx`)
+}
+
 function ExportModal({ attempts, examMap, onClose }) {
   const [format, setFormat] = useState('csv')
   const initialKeys = (opts) => opts.map((o) => o.key)
   const [selected, setSelected] = useState(() => initialKeys(EXPORT_TABLE_OPTIONS))
 
-  const options = format === 'pdf' ? EXPORT_PDF_OPTIONS : EXPORT_TABLE_OPTIONS
+  const options =
+    format === 'pdf' || format === 'docx' ? EXPORT_PDF_OPTIONS : EXPORT_TABLE_OPTIONS
 
   const changeFormat = (f) => {
     setFormat(f)
-    setSelected(initialKeys(f === 'pdf' ? EXPORT_PDF_OPTIONS : EXPORT_TABLE_OPTIONS))
+    setSelected(
+      initialKeys(f === 'pdf' || f === 'docx' ? EXPORT_PDF_OPTIONS : EXPORT_TABLE_OPTIONS)
+    )
   }
 
   const toggle = (key) => {
@@ -616,14 +979,16 @@ function ExportModal({ attempts, examMap, onClose }) {
     const columns = options.filter((o) => selected.includes(o.key))
     if (format === 'csv') exportCSV(attempts, examMap, columns)
     else if (format === 'xls') exportXLS(attempts, examMap, columns)
+    else if (format === 'docx') await exportDOCX(attempts, examMap, columns)
     else await exportPDF(attempts, examMap, columns)
     onClose()
   }
 
-  const formats = [
+const formats = [
     { key: 'csv', title: 'CSV', desc: 'Comma-separated table' },
     { key: 'xls', title: 'Excel', desc: 'Same columns as CSV, real .xlsx file' },
     { key: 'pdf', title: 'PDF', desc: 'One page per attempt with detailed content' },
+    { key: 'docx', title: 'Document', desc: 'Same detailed content as PDF, Word format' },
   ]
 
   return (
