@@ -1,6 +1,22 @@
 import { apiClient } from './client';
 import { API_ENDPOINTS } from '../../constants/api';
 
+export interface AttemptExam {
+  id: string;
+  title: string;
+  code: string;
+  questions: any;
+}
+
+export interface AttemptSchool {
+  id: string;
+  name: string;
+  logo_url: string | null;
+  location: string | null;
+  primary_color: string | null;
+  secondary_color: string | null;
+}
+
 export interface Attempt {
   id: string;
   exam_id: string;
@@ -23,6 +39,8 @@ export interface Attempt {
   submitted_at: string | null;
   graded_at: string | null;
   status: string;
+  exam?: AttemptExam | null;
+  school?: AttemptSchool | null;
   created_at: string;
   updated_at: string;
 }

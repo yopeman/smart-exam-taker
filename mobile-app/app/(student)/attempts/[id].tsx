@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAttemptStore } from '../../../store/attemptStore';
 import { useTheme } from '../../../lib/theme/theme';
@@ -38,6 +38,73 @@ export default function AttemptDetailScreen() {
     return status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ');
   };
 
+  const getCorrectnessColor = (correctness: string) => {
+    switch (correctness) {
+      case 'correct':
+        return theme.colors.success;
+      case 'partial':
+        return theme.colors.warning;
+      default:
+        return theme.colors.error;
+    }
+  };
+
+  const getCorrectnessText = (correctness: string) => {
+    if (correctness === 'correct') return 'Correct';
+    if (correctness === 'partial') return 'Partial';
+    return 'Incorrect';
+  };
+
+  const flattenExamQuestions = (exam: any) => {
+    const map: Record<string, any> = {};
+    (exam?.questions?.questions || []).forEach((group: any) => {
+      (group.questions || []).forEach((q: any) => {
+        map[q.id] = q;
+      });
+    });
+    return map;
+  };
+
+  const questionMap = useMemo(
+    () => flattenExamQuestions(currentAttempt?.exam),
+    [currentAttempt?.exam]
+  );
+
+  const renderCorrectAnswer = (q: any) => {
+    if (!q) return '—';
+    const inner = q.question || q;
+    switch (inner.type) {
+      case 'mcq': {
+        const letter = inner.correct_answer;
+        const option = (inner.options || []).find(
+          (o: any) => o.letter === letter
+        )?.option;
+        return option ? `${letter} — ${option}` : String(letter ?? '—');
+      }
+      case 'true_false':
+        return inner.correct_answer ? 'True' : 'False';
+      case 'matching':
+        return Object.entries(inner.correct_mapping || {})
+          .map(([l, r]) => `${l}→${r}`)
+          .join(', ');
+      case 'blank_space':
+        return Array.isArray(inner.correct_answers)
+          ? inner.correct_answers.join(', ')
+          : String(inner.correct_answers ?? '—');
+      case 'short_answer':
+      case 'essay':
+        return String(inner.correct_answer ?? '—');
+      default:
+        return String(inner.correct_answer ?? inner.correct_answers ?? '—');
+    }
+  };
+
+  const questionText = (q: any) => {
+    if (!q) return '';
+    const inner = q.question || q;
+    return inner?.question || q.id || '';
+  };
+
   const renderStudentAnswer = (detail: any) => {
     const { type, answer } = detail;
     if (type === 'short_answer' || type === 'essay') {
@@ -57,20 +124,13 @@ export default function AttemptDetailScreen() {
     return String(answer);
   };
 
-  const getCorrectnessColor = (correctness: string) => {
-    switch (correctness) {
-      case 'correct':
-        return theme.colors.success;
-      case 'partial':
-        return theme.colors.warning;
-      default:
-        return theme.colors.error;
-    }
-  };
-
-  const gradingDetails: any[] = Array.isArray(currentAttempt.grading_details)
+  const gradingDetails: any[] = Array.isArray(currentAttempt?.grading_details)
     ? currentAttempt.grading_details
     : [];
+
+  const school = currentAttempt?.school ?? null;
+  const exam = currentAttempt?.exam ?? null;
+  const primaryColor = school?.primary_color || theme.colors.primary;
 
   if (isLoading) {
     return (
@@ -110,6 +170,60 @@ export default function AttemptDetailScreen() {
           </Text>
         </View>
 
+        <Card
+          style={{ ...styles.schoolCard, borderLeftColor: school?.primary_color || theme.colors.border }}
+        >
+          <View style={styles.schoolRow}>
+            {school?.logo_url ? (
+              <Image
+                source={{ uri: school.logo_url }}
+                style={[
+                  styles.schoolLogo,
+                  school?.primary_color ? { borderColor: school.primary_color } : null,
+                ]}
+                resizeMode="contain"
+              />
+            ) : school?.name ? (
+              <View
+                style={[
+                  styles.schoolAvatar,
+                  { backgroundColor: primaryColor },
+                ]}
+              >
+                <Text style={[styles.schoolAvatarText, { fontSize: theme.typography.sizes.lg }]}>
+                  {school.name.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            ) : (
+              <View style={[styles.schoolAvatar, { backgroundColor: primaryColor }]}>
+                <Text style={[styles.schoolAvatarText, { fontSize: theme.typography.sizes.lg }]}>
+                  S
+                </Text>
+              </View>
+            )}
+            <View style={styles.schoolInfo}>
+              {school?.name && (
+                <Text style={[styles.schoolName, { color: theme.colors.text, fontSize: theme.typography.sizes.md }]}>
+                  {school.name}
+                </Text>
+              )}
+              {school?.location && (
+                <Text style={[styles.schoolLocation, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.xs }]}>
+                  {school.location}
+                </Text>
+              )}
+              <Text style={[styles.examTitle, { color: theme.colors.text, fontSize: theme.typography.sizes.sm }]}>
+                {exam?.title || 'Unknown exam'}{' '}
+                {exam?.code && (
+                  <Text style={{ color: theme.colors.textSecondary, fontSize: theme.typography.sizes.xs }}>
+                    ({exam.code})
+                  </Text>
+                )}
+              </Text>
+            </View>
+          </View>
+        </Card>
+
         <Card style={styles.card}>
           <View style={styles.infoRow}>
             <Text style={[styles.label, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.sm }]}>
@@ -140,13 +254,23 @@ export default function AttemptDetailScreen() {
             </View>
           )}
 
+          <View style={styles.infoRow}>
+            <Text style={[styles.label, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.sm }]}>
+              School
+            </Text>
+            <Text style={[styles.value, { color: theme.colors.text, fontSize: theme.typography.sizes.md }]}>
+              {school?.name || '—'}
+            </Text>
+          </View>
+
           {currentAttempt.year_of_study && (
             <View style={styles.infoRow}>
               <Text style={[styles.label, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.sm }]}>
-                Year of Study
+                Year / Semester / Section
               </Text>
               <Text style={[styles.value, { color: theme.colors.text, fontSize: theme.typography.sizes.md }]}>
-                {currentAttempt.year_of_study}
+                {currentAttempt.year_of_study} / {currentAttempt.semester || '—'} /{' '}
+                {currentAttempt.section || '—'}
               </Text>
             </View>
           )}
@@ -236,71 +360,86 @@ export default function AttemptDetailScreen() {
         {gradingDetails.length > 0 && (
           <Card style={styles.card}>
             <Text style={[styles.sectionTitle, { color: theme.colors.text, fontSize: theme.typography.sizes.lg }]}>
-              Grading Details
+              Answers & Grading
             </Text>
-            {gradingDetails.map((d: any, i: number) => (
-              <View
-                key={i}
-                style={[
-                  styles.detailCard,
-                  { borderColor: theme.colors.border },
-                ]}
-              >
-                <View style={styles.detailHeader}>
-                  <Text style={[styles.detailTitle, { color: theme.colors.text, fontSize: theme.typography.sizes.sm }]}>
-                    {d.question_id || `Q${i + 1}`}
-                  </Text>
-                  {d.correctness != null && (
-                    <View
-                      style={[
-                        styles.correctnessBadge,
-                        { backgroundColor: getCorrectnessColor(d.correctness) + '20' },
-                      ]}
-                    >
-                      <Text
+            {gradingDetails.map((d: any, i: number) => {
+              const q = questionMap[d.question_id];
+              return (
+                <View
+                  key={i}
+                  style={[
+                    styles.detailCard,
+                    { borderColor: theme.colors.border },
+                  ]}
+                >
+                  <View style={styles.detailHeader}>
+                    <Text style={[styles.detailTitle, { color: theme.colors.text, fontSize: theme.typography.sizes.sm }]}>
+                      {questionText(q) || d.question_id || `Q${i + 1}`}
+                    </Text>
+                    {d.correctness != null && (
+                      <View
                         style={[
-                          styles.correctnessText,
-                          { color: getCorrectnessColor(d.correctness), fontSize: theme.typography.sizes.xs },
+                          styles.correctnessBadge,
+                          { backgroundColor: getCorrectnessColor(d.correctness) + '20' },
                         ]}
                       >
-                        {d.correctness}
-                      </Text>
-                    </View>
+                        <Text
+                          style={[
+                            styles.correctnessText,
+                            { color: getCorrectnessColor(d.correctness), fontSize: theme.typography.sizes.xs },
+                          ]}
+                        >
+                          {getCorrectnessText(d.correctness)}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <Text style={[styles.detailMeta, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.xs }]}>
+                    {d.type} · {d.point ?? d.points} pts
+                  </Text>
+                  {q?.id && (
+                    <Text style={[styles.detailMeta, { color: theme.colors.textLight, fontSize: theme.typography.sizes.xs }]}>
+                      {q.id}
+                    </Text>
                   )}
-                </View>
 
-                <Text style={[styles.detailMeta, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.xs }]}>
-                  {d.type} · {d.point ?? d.points} pts
-                </Text>
-
-                <Text style={[styles.detailLabel, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.xs }]}>
-                  Your Answer
-                </Text>
-                <Text style={[styles.detailValue, { color: theme.colors.text, fontSize: theme.typography.sizes.sm }]}>
-                  {renderStudentAnswer(d)}
-                </Text>
-
-                {d.feedback != null && (
-                  <>
-                    <Text style={[styles.detailLabel, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.xs }]}>
-                      Feedback
-                    </Text>
-                    <Text style={[styles.detailValue, { color: theme.colors.text, fontSize: theme.typography.sizes.sm }]}>
-                      {d.feedback}
-                    </Text>
-                  </>
-                )}
-
-                <View style={styles.scoreRow}>
-                  <Text style={[styles.scoreLabel, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.sm }]}>
-                    Score
+                  <Text style={[styles.detailLabel, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.xs }]}>
+                    Correct Answer
                   </Text>
-                  <Text style={[styles.scoreValue, { color: theme.colors.primary, fontSize: theme.typography.sizes.sm }]}>
-                    {Number(d.score).toFixed(1)} / {d.point ?? d.points}
+                  <Text style={[styles.detailValue, { color: theme.colors.text, fontSize: theme.typography.sizes.sm }]}>
+                    {renderCorrectAnswer(q)}
                   </Text>
+
+                  <Text style={[styles.detailLabel, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.xs }]}>
+                    Your Answer
+                  </Text>
+                  <Text style={[styles.detailValue, { color: theme.colors.text, fontSize: theme.typography.sizes.sm }]}>
+                    {renderStudentAnswer(d)}
+                  </Text>
+
+                  {d.feedback != null && (
+                    <>
+                      <Text style={[styles.detailLabel, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.xs }]}>
+                        Feedback
+                      </Text>
+                      <Text style={[styles.detailValue, { color: theme.colors.text, fontSize: theme.typography.sizes.sm }]}>
+                        {d.feedback}
+                      </Text>
+                    </>
+                  )}
+
+                  <View style={styles.scoreRow}>
+                    <Text style={[styles.scoreLabel, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.sm }]}>
+                      Score
+                    </Text>
+                    <Text style={[styles.scoreValue, { color: theme.colors.primary, fontSize: theme.typography.sizes.sm }]}>
+                      {Number(d.score ?? 0).toFixed(1)} / {d.point ?? d.points}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </Card>
         )}
 
@@ -344,6 +483,50 @@ const styles = StyleSheet.create({
   title: {
     fontWeight: 'bold',
   },
+  schoolCard: {
+    margin: 24,
+    marginTop: 0,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#E5E7EB',
+  },
+  schoolRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  schoolLogo: {
+    width: 56,
+    height: 56,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+  },
+  schoolAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  schoolAvatarText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  schoolInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  schoolName: {
+    fontWeight: '600',
+  },
+  schoolLocation: {
+    marginTop: 2,
+  },
+  examTitle: {
+    marginTop: 4,
+    fontWeight: '500',
+  },
   card: {
     margin: 24,
     marginTop: 0,
@@ -359,6 +542,8 @@ const styles = StyleSheet.create({
   },
   value: {
     fontWeight: '500',
+    maxWidth: '70%',
+    textAlign: 'right',
   },
   statusBadge: {
     paddingHorizontal: 12,
@@ -414,6 +599,8 @@ const styles = StyleSheet.create({
   },
   detailTitle: {
     fontWeight: '600',
+    flex: 1,
+    marginRight: 8,
   },
   correctnessBadge: {
     paddingHorizontal: 8,

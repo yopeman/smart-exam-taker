@@ -4,8 +4,20 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import AttemptStatus, Exam, ExamAttempt, ExamStatus, User, UserRole
-from app.schemas.attempt import StartAttemptRequest, UpdateAttemptScoresRequest
+from app.models import (
+    AttemptStatus,
+    Exam,
+    ExamAttempt,
+    ExamStatus,
+    School,
+    User,
+    UserRole,
+)
+from app.schemas.attempt import (
+    AttemptResponse,
+    StartAttemptRequest,
+    UpdateAttemptScoresRequest,
+)
 from app.services import face
 from app.services.grading_queue import enqueue_attempt_grading
 
@@ -160,7 +172,7 @@ def update_attempt_scores(
     return attempt
 
 
-def get_attempt(attempt_id: str, user: User, db: Session) -> ExamAttempt:
+def get_attempt(attempt_id: str, user: User, db: Session) -> AttemptResponse:
     attempt = db.get(ExamAttempt, attempt_id)
     if attempt is None or attempt.is_deleted:
         raise HTTPException(
@@ -178,7 +190,37 @@ def get_attempt(attempt_id: str, user: User, db: Session) -> ExamAttempt:
 
         exam = get_exam(attempt.exam_id, db)
         require_exam_manager(exam, user, db)
-    return attempt
+
+    return enrich_attempt(attempt, db)
+
+
+def enrich_attempt(attempt: ExamAttempt, db: Session) -> AttemptResponse:
+    """Build an attempt response with exam and school info attached."""
+    response = AttemptResponse.model_validate(attempt)
+    exam = db.get(Exam, attempt.exam_id)
+    if exam is None or exam.is_deleted:
+        return response
+
+    school = db.get(School, exam.school_id)
+    response.exam = {
+        "id": exam.id,
+        "title": exam.title,
+        "code": exam.code,
+        "questions": exam.questions if attempt.grading_details else None,
+    }
+    response.school = (
+        {
+            "id": school.id,
+            "name": school.name,
+            "logo_url": school.logo_url,
+            "location": school.location,
+            "primary_color": school.primary_color,
+            "secondary_color": school.secondary_color,
+        }
+        if school is not None and not school.is_deleted
+        else None
+    )
+    return response
 
 
 def list_exam_attempts(exam_id: str, user: User, db: Session) -> list:
@@ -195,7 +237,7 @@ def list_exam_attempts(exam_id: str, user: User, db: Session) -> list:
     return list(db.scalars(stmt))
 
 
-def list_my_attempts(user: User, db: Session) -> list:
+def list_my_attempts(user: User, db: Session) -> list[AttemptResponse]:
     if user.role != UserRole.student:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -209,7 +251,8 @@ def list_my_attempts(user: User, db: Session) -> list:
         )
         .order_by(ExamAttempt.created_at.desc())
     )
-    return list(db.scalars(stmt))
+    attempts = list(db.scalars(stmt))
+    return [enrich_attempt(a, db) for a in attempts]
 
 
 def list_reachable_attempts(user: User, db: Session) -> list:

@@ -4,7 +4,8 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models import AttemptStatus
-from app.schemas.question import StudentAttempt
+from app.schemas.exam import LimitedSchool
+from app.schemas.question import StudentAttempt, TotalQuestions
 
 
 class StartAttemptRequest(BaseModel):
@@ -40,6 +41,13 @@ class UpdateAttemptScoresRequest(BaseModel):
     total_score: float | None = Field(default=None, ge=0)
 
 
+class AttemptExam(BaseModel):
+    id: str
+    title: str
+    code: str
+    questions: TotalQuestions | None = None
+
+
 class AttemptResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -64,6 +72,8 @@ class AttemptResponse(BaseModel):
     submitted_at: datetime | None
     graded_at: datetime | None
     status: AttemptStatus
+    exam: AttemptExam | None = None
+    school: LimitedSchool | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -72,4 +82,5 @@ __all__ = [
     "StartAttemptRequest",
     "SubmitAttemptRequest",
     "AttemptResponse",
+    "AttemptExam",
 ]
