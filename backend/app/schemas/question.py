@@ -1,6 +1,6 @@
 import uuid
 from enum import Enum
-from typing import Annotated, Literal, Union
+from typing import Annotated, Any, Literal, Union
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -179,6 +179,27 @@ class StudentBlankSpaceQuestion(BaseModel):
 
     type: Literal[QuestionType.blank_space] = QuestionType.blank_space
     question: str = Field(min_length=1)
+    blank_count: int = Field(default=1, ge=1)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _infer_blank_count(cls, data: Any) -> Any:
+        """Derive the number of blanks from the raw input without leaking answers.
+
+        Runs before coercion so it can still see `correct_answers` (from the
+        stored question) when present, and falls back to counting question-text
+        blank separators otherwise.
+        """
+        if not isinstance(data, dict):
+            return data
+        if "correct_answers" not in data and "blank_count" not in data:
+            return data
+
+        raw_correct = data.get("correct_answers") or []
+        if raw_correct:
+            data["blank_count"] = len(raw_correct)
+        data.pop("correct_answers", None)
+        return data
 
 
 class StudentShortAnswerQuestion(BaseModel):

@@ -203,6 +203,7 @@ export interface NormalizedQuestion {
   left_items?: string[];
   right_items?: string[];
   correct_answers?: string[];
+  blank_count?: number;
 }
 
 export function normalizeQuestion(container: any): NormalizedQuestion | null {
@@ -229,6 +230,7 @@ export function normalizeQuestion(container: any): NormalizedQuestion | null {
   }
   if (type === QuestionType.BLANK_SPACE) {
     base.correct_answers = item.correct_answers || [];
+    base.blank_count = item.blank_count ?? item.correct_answers?.length;
   }
   return base;
 }

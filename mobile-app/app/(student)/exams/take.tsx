@@ -159,7 +159,7 @@ function MatchingAnswer({ qn, value, onChange, theme, inputCls }) {
 }
 
 function BlankSpaceAnswer({ qn, value, onChange, theme }) {
-  const count = qn.correct_answers?.length || 1;
+  const count = qn.blank_count || qn.correct_answers?.length || 1;
   const blanks: string[] = Array.isArray(value) ? value : [];
   const setBlank = (i: number, text: string) => {
     const next = Array.from({ length: count }, (_, idx) => blanks[idx] ?? '');
