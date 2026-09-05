@@ -135,10 +135,10 @@ function QuestionBuilder({ groups, setGroups }) {
           if (!prevImages[id]) {
             apiClient.get(`/files/${id}`)
               .then((response) => {
-                if (response.data?.data) {
+                if (response?.data) {
                   setScenarioImages((prev) => ({
                     ...prev,
-                    [id]: `data:image/jpeg;base64,${response.data.data}`,
+                    [id]: `data:image/jpeg;base64,${response.data}`,
                   }))
                 }
               })
