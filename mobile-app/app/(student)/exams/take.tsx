@@ -14,6 +14,7 @@ import {
   buildAttemptsPayload,
 } from '../../../lib/exam-schema';
 import { apiClient } from '../../../lib/api/client';
+import { Modal as UiModal } from '../../../components/ui/Modal';
 
 function MCQAnswer({ qn, value, onChange, theme }) {
   const selected: string | null = typeof value === 'string' ? value : null;
@@ -66,12 +67,18 @@ function TrueFalseAnswer({ value, onChange, theme }) {
 
 function MatchingAnswer({ qn, value, onChange, theme, inputCls }) {
   const mapping: Record<number, number> = value && typeof value === 'object' ? { ...value } : {};
-  const setMapping = (leftIdx: number, rightIdx: number) => {
+  const rightItems = qn.right_items || [];
+  const [openRow, setOpenRow] = useState<number | null>(null);
+  const setMapping = (leftIdx: number, rightIdx: number | null) => {
     const next: Record<number, number> = { ...mapping };
-    Object.keys(next).forEach((k) => {
-      if (next[Number(k)] === rightIdx) delete next[Number(k)];
-    });
-    next[leftIdx] = rightIdx;
+    if (rightIdx == null) {
+      delete next[leftIdx];
+    } else {
+      Object.keys(next).forEach((k) => {
+        if (next[Number(k)] === rightIdx) delete next[Number(k)];
+      });
+      next[leftIdx] = rightIdx;
+    }
     onChange(next);
   };
   return (
@@ -82,26 +89,71 @@ function MatchingAnswer({ qn, value, onChange, theme, inputCls }) {
           <View style={styles.matchingSelectWrap}>
             <TouchableOpacity
               style={styles.matchingSelect}
-              onPress={() => {
-                const count = qn.right_items?.length || 0;
-                const current = mapping[i];
-                const nextIndex = current == null ? 0 : current + 1;
-                if (nextIndex < count) {
-                  setMapping(i, nextIndex);
-                } else {
-                  const next = { ...mapping };
-                  delete next[i];
-                  onChange(next);
-                }
-              }}
+              onPress={() => setOpenRow(i)}
             >
-              <Text style={[styles.matchingSelectText, { color: theme.colors.text }]}>
-                {mapping[i] != null ? qn.right_items[mapping[i]] : 'Select…'}
+              <Text
+                style={[
+                  styles.matchingSelectText,
+                  { color: mapping[i] != null ? theme.colors.text : theme.colors.textSecondary },
+                ]}
+              >
+                {mapping[i] != null ? rightItems[mapping[i]] : 'Select…'}
               </Text>
             </TouchableOpacity>
           </View>
         </View>
       ))}
+
+      <UiModal
+        visible={openRow != null}
+        onClose={() => setOpenRow(null)}
+        title="Match to…"
+      >
+        <TouchableOpacity
+          style={styles.matchingOption}
+          onPress={() => {
+            setMapping(openRow as number, null);
+            setOpenRow(null);
+          }}
+        >
+          <Text style={[styles.matchingOptionText, { color: theme.colors.textSecondary }]}>
+            Clear selection
+          </Text>
+        </TouchableOpacity>
+        {rightItems.map((r, ri) => {
+          const active = openRow != null && mapping[openRow] === ri;
+          const taken =
+            openRow != null && !active && Object.values(mapping).includes(ri);
+          return (
+            <TouchableOpacity
+              key={ri}
+              style={[
+                styles.matchingOption,
+                active && { backgroundColor: theme.colors.primary + '20' },
+              ]}
+              disabled={taken}
+              onPress={() => {
+                setMapping(openRow as number, ri);
+                setOpenRow(null);
+              }}
+            >
+              <Text
+                style={[
+                  styles.matchingOptionText,
+                  { color: taken ? theme.colors.textSecondary : theme.colors.text },
+                ]}
+              >
+                {ri + 1}. {r}
+              </Text>
+              {taken && (
+                <Text style={[styles.matchingOptionHint, { color: theme.colors.textSecondary }]}>
+                  Used
+                </Text>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </UiModal>
     </View>
   );
 }
@@ -212,7 +264,7 @@ export default function TakeExamScreen() {
   }, [currentExam, step]);
 
   useEffect(() => {
-    let interval: number;
+    let interval: ReturnType<typeof setInterval>;
     if (step === 'questions' && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft((prev) => {
@@ -902,6 +954,22 @@ const styles = StyleSheet.create({
   },
   matchingSelectText: {
     textAlign: 'center',
+  },
+  matchingOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 8,
+  },
+  matchingOptionText: {
+    fontSize: 14,
+  },
+  matchingOptionHint: {
+    fontSize: 12,
   },
   blankContainer: {
     gap: 8,
