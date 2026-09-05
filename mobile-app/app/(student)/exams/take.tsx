@@ -976,6 +976,8 @@ const styles = StyleSheet.create({
   },
   textAnswer: {
     minHeight: 100,
+    color: '#FFFFFF',
+    textAlignVertical: 'top',
   },
   noQuestions: {
     textAlign: 'center',
