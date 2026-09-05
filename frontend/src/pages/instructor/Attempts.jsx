@@ -954,13 +954,24 @@ async function exportDOCX(attempts, examMap, options) {
   downloadBlob(blob, `attempts_${exportStamp()}.docx`)
 }
 
-function ExportModal({ attempts, examMap, onClose }) {
-  const [format, setFormat] = useState('csv')
-  const initialKeys = (opts) => opts.map((o) => o.key)
-  const [selected, setSelected] = useState(() => initialKeys(EXPORT_TABLE_OPTIONS))
+const EXPORT_FORMATS = [
+  { key: 'csv', title: 'CSV', desc: 'Comma-separated table' },
+  { key: 'xls', title: 'Excel', desc: 'Same columns as CSV, real .xlsx file' },
+  { key: 'pdf', title: 'PDF', desc: 'One page per attempt with detailed content' },
+  { key: 'docx', title: 'Document', desc: 'Same detailed content as PDF, Word format' },
+]
 
-  const options =
-    format === 'pdf' || format === 'docx' ? EXPORT_PDF_OPTIONS : EXPORT_TABLE_OPTIONS
+function ExportModal({ attempts, examMap, onClose, allowedFormats, title = 'Export Attempts' }) {
+  const initialKeys = (opts) => opts.map((o) => o.key)
+  const [format, setFormat] = useState(() =>
+    allowedFormats && allowedFormats.length > 0 ? allowedFormats[0] : 'csv'
+  )
+  const isDetail = format === 'pdf' || format === 'docx'
+  const [selected, setSelected] = useState(() =>
+    initialKeys(isDetail ? EXPORT_PDF_OPTIONS : EXPORT_TABLE_OPTIONS)
+  )
+
+  const options = isDetail ? EXPORT_PDF_OPTIONS : EXPORT_TABLE_OPTIONS
 
   const changeFormat = (f) => {
     setFormat(f)
@@ -984,19 +995,16 @@ function ExportModal({ attempts, examMap, onClose }) {
     onClose()
   }
 
-const formats = [
-    { key: 'csv', title: 'CSV', desc: 'Comma-separated table' },
-    { key: 'xls', title: 'Excel', desc: 'Same columns as CSV, real .xlsx file' },
-    { key: 'pdf', title: 'PDF', desc: 'One page per attempt with detailed content' },
-    { key: 'docx', title: 'Document', desc: 'Same detailed content as PDF, Word format' },
-  ]
+  const formats = EXPORT_FORMATS.filter(
+    (f) => !allowedFormats || allowedFormats.includes(f.key)
+  )
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800 max-h-[90vh] overflow-y-auto">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Export Attempts
+            {title}
           </h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="h-5 w-5" />
@@ -1380,6 +1388,7 @@ export default function Attempts() {
   const [search, setSearch] = useState('')
   const [detail, setDetail] = useState(null)
   const [showExport, setShowExport] = useState(false)
+  const [exportAttempt, setExportAttempt] = useState(null)
 
   const handleSaved = (saved) => {
     setAttempts((prev) =>
@@ -1512,10 +1521,13 @@ export default function Attempts() {
               {pagination.paged.map((a) => {
                 const exam = examMap[a.exam_id]
                 return (
+                  <div
+                  key={a.id}
+                  className="flex w-full items-center gap-4 rounded-lg bg-white p-4 shadow hover:ring-2 hover:ring-indigo-500 dark:bg-gray-800"
+                >
                   <button
-                    key={a.id}
                     onClick={() => setDetail(a)}
-                    className="flex w-full items-center gap-4 rounded-lg bg-white p-4 text-left shadow hover:ring-2 hover:ring-indigo-500 dark:bg-gray-800"
+                    className="flex min-w-0 flex-1 items-center gap-4 rounded-lg text-left"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-semibold text-gray-900 dark:text-white">
@@ -1534,9 +1546,17 @@ export default function Attempts() {
                         </span>
                       </div>
                     </div>
-                    <AttemptStatusBadge status={a.status} />
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
                   </button>
+                  <button
+                    onClick={() => setExportAttempt(a)}
+                    title="Export this attempt"
+                    className="rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-indigo-600 dark:hover:bg-gray-700 dark:hover:text-indigo-400"
+                  >
+                    <Download className="h-5 w-5" />
+                  </button>
+                  <AttemptStatusBadge status={a.status} />
+                  <ChevronRight className="h-5 w-5 text-gray-400" />
+                </div>
                 )
               })}
             </div>
@@ -1567,6 +1587,16 @@ export default function Attempts() {
           attempts={filtered}
           examMap={examMap}
           onClose={() => setShowExport(false)}
+        />
+      )}
+
+      {exportAttempt && (
+        <ExportModal
+          title="Export Attempt"
+          attempts={[exportAttempt]}
+          examMap={examMap}
+          allowedFormats={['pdf', 'docx']}
+          onClose={() => setExportAttempt(null)}
         />
       )}
     </div>
