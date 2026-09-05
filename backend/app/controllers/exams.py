@@ -91,6 +91,47 @@ def generate_code() -> str:
     return "EXAM-" + uuid.uuid4().hex[:8].upper()
 
 
+def serialize_exam(exam: Exam, db: Session) -> ExamResponse:
+    school = db.get(School, exam.school_id)
+    return ExamResponse(
+        id=exam.id,
+        school_id=exam.school_id,
+        instructor_id=exam.instructor_id,
+        code=exam.code,
+        title=exam.title,
+        description=exam.description,
+        department=exam.department,
+        year_of_study=exam.year_of_study,
+        semester=exam.semester,
+        section=exam.section,
+        document_content=exam.document_content,
+        questions=exam.questions,
+        duration_minutes=exam.duration_minutes,
+        max_students=exam.max_students,
+        max_reserved_students=exam.max_reserved_students,
+        status=exam.status,
+        started_by=exam.started_by,
+        scheduled_at=exam.scheduled_at,
+        started_at=exam.started_at,
+        completed_at=exam.completed_at,
+        cancelled_at=exam.cancelled_at,
+        school=(
+            {
+                "id": school.id,
+                "name": school.name,
+                "logo_url": school.logo_url,
+                "location": school.location,
+                "primary_color": school.primary_color,
+                "secondary_color": school.secondary_color,
+            }
+            if school is not None and not school.is_deleted
+            else None
+        ),
+        created_at=exam.created_at,
+        updated_at=exam.updated_at,
+    )
+
+
 def create_exam(
     school_id: str,
     user: User,
@@ -204,7 +245,7 @@ def list_reachable_exams(user: User, db: Session) -> list:
         .where(or_(*conditions), Exam.deleted_at.is_(None))
         .order_by(Exam.created_at.desc())
     )
-    return list(db.scalars(stmt))
+    return [serialize_exam(e, db) for e in db.scalars(stmt)]
 
 
 def list_shared_school_exams_by_me(user: User, db: Session) -> list:

@@ -32,6 +32,9 @@ class LimitedSchool(BaseModel):
     id: str
     name: str
     logo_url: str | None
+    location: str | None = None
+    primary_color: str | None = None
+    secondary_color: str | None = None
 
 
 class StudentExamResponse(BaseModel):
@@ -88,6 +91,7 @@ class ExamResponse(BaseModel):
     started_at: datetime | None
     completed_at: datetime | None
     cancelled_at: datetime | None
+    school: LimitedSchool | None = None
     created_at: datetime
     updated_at: datetime
 

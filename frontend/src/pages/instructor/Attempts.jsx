@@ -203,11 +203,49 @@ function AttemptDetail({ attempt, exam, onClose, onSaved }) {
         </div>
 
         <div className="space-y-4 text-sm">
-          <div>
-            <p className="font-medium text-gray-900 dark:text-white">
-              {exam?.title || 'Unknown exam'}{' '}
-              <span className="text-xs text-gray-500">({exam?.code})</span>
-            </p>
+          <div
+            className="flex items-center gap-3 rounded-md bg-gray-50 p-3 dark:bg-gray-700/40"
+            style={
+              exam?.school?.primary_color
+                ? { borderLeft: `4px solid ${exam.school.primary_color}` }
+                : undefined
+            }
+          >
+            {exam?.school?.logo_url ? (
+              <img
+                src={exam.school.logo_url}
+                alt={exam.school.name || 'School logo'}
+                className="w-24 rounded-md border border-gray-200 bg-white object-contain dark:border-gray-600"
+                style={
+                  exam?.school?.primary_color
+                    ? { borderColor: exam.school.primary_color }
+                    : undefined
+                }
+              />
+            ) : exam?.school?.name ? (
+              <div
+                className="flex h-12 w-12 items-center justify-center rounded-md text-lg font-bold text-white"
+                style={{
+                  backgroundColor: exam.school.primary_color || '#4f46e5',
+                }}
+              >
+                {exam.school.name.charAt(0).toUpperCase()}
+              </div>
+            ) : null}
+            <div className="min-w-0">
+              {exam?.school?.name && (
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                  {exam.school.name}
+                </p>
+              )}
+              {exam?.school?.location && (
+                <p className="text-xs text-gray-500">{exam.school.location}</p>
+              )}
+              <p className="font-medium text-gray-900 dark:text-white">
+                {exam?.title || 'Unknown exam'}{' '}
+                <span className="text-xs text-gray-500">({exam?.code})</span>
+              </p>
+            </div>
           </div>
 
           {attempt.student_face_url && (
@@ -231,6 +269,7 @@ function AttemptDetail({ attempt, exam, onClose, onSaved }) {
             )}
             {readOnlyField('ID Number', attempt.student_id_number)}
             {readOnlyField('Department', attempt.department || '—')}
+            {readOnlyField('School', exam?.school?.name || '—')}
             {readOnlyField(
               'Year / Semester / Section',
               `${attempt.year_of_study || '—'} / ${attempt.semester || '—'} / ${
