@@ -1,5 +1,6 @@
 from app.models.attempt import AttemptStatus, ExamAttempt
 from app.models.exam import Exam, ExamStatus
+from app.models.file import File
 from app.models.instructor_invitation import (
     INVITATION_EXPIRE_DAYS,
     InstructorInvitation,
@@ -19,4 +20,5 @@ __all__ = [
     "ExamStatus",
     "ExamAttempt",
     "AttemptStatus",
+    "File",
 ]

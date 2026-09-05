@@ -110,6 +110,7 @@ function buildTotal(groups) {
     questions: (groups || [])
       .map((g) => ({
         scenario: g.scenario && g.scenario.trim() ? g.scenario.trim() : null,
+        scenario_image_ids: g.scenario_image_ids && g.scenario_image_ids.length > 0 ? g.scenario_image_ids : null,
         questions: g.questions || [],
       }))
       .filter((g) => g.questions.length > 0),
@@ -197,9 +198,41 @@ function QuestionBuilder({ groups, setGroups }) {
     setGroups((gs) => gs.map((g, i) => (i === gi ? { ...g, ...patch } : g)))
 
   const addGroup = () =>
-    setGroups((gs) => [...gs, { scenario: '', questions: [blankQuestion('mcq')] }])
+    setGroups((gs) => [...gs, { scenario: '', scenario_image_ids: [], questions: [blankQuestion('mcq')] }])
 
   const removeGroup = (gi) => setGroups((gs) => gs.filter((_, i) => i !== gi))
+
+  const handleImageUpload = async (gi, e) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    const imageIds = [...(groups[gi].scenario_image_ids || [])]
+    
+    for (const file of files) {
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+        
+        const response = await apiClient.post('/files/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        
+        if (response.data?.id) {
+          imageIds.push(response.data.id)
+        }
+      } catch (err) {
+        console.error('Failed to upload image:', err)
+        alert('Failed to upload image. Please try again.')
+      }
+    }
+    
+    updateGroup(gi, { scenario_image_ids: imageIds })
+  }
+
+  const removeImage = (gi, imageId) => {
+    const currentIds = groups[gi].scenario_image_ids || []
+    updateGroup(gi, { scenario_image_ids: currentIds.filter((id) => id !== imageId) })
+  }
 
   return (
     <div className="space-y-4">
@@ -222,6 +255,43 @@ function QuestionBuilder({ groups, setGroups }) {
               >
                 Remove
               </button>
+            </div>
+
+            <div className="rounded-md border border-gray-200 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-800">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="text-xs font-semibold text-gray-500">Scenario Images</span>
+                <label className="cursor-pointer text-xs text-indigo-600 hover:underline">
+                  <Upload className="inline h-3 w-3" />
+                  Upload Images
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => handleImageUpload(gi, e)}
+                  />
+                </label>
+              </div>
+              {(group.scenario_image_ids || []).length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {group.scenario_image_ids.map((imageId) => (
+                    <div key={imageId} className="relative">
+                      <div className="h-16 w-16 rounded-md border border-gray-300 bg-gray-200 dark:border-gray-600 dark:bg-gray-700 flex items-center justify-center">
+                        <span className="text-xs text-gray-500">Image</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeImage(gi, imageId)}
+                        className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-500">No images uploaded</p>
+              )}
             </div>
 
             {group.questions.map((q, qIdx) => {
@@ -588,11 +658,12 @@ function ExamFormModal({ schoolId, schools = [], exam, onClose, onSaved }) {
         return payload.questions.length > 0
           ? payload.questions.map((g) => ({
               scenario: g.scenario ?? '',
+              scenario_image_ids: g.scenario_image_ids || [],
               questions: g.questions || [],
             }))
-          : [{ scenario: '', questions: [] }]
+          : [{ scenario: '', scenario_image_ids: [], questions: [] }]
       }
-      return [{ scenario: '', questions: [] }]
+      return [{ scenario: '', scenario_image_ids: [], questions: [] }]
     }
   )
   const [saving, setSaving] = useState(false)

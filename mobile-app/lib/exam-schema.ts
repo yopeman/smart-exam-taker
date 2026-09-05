@@ -132,6 +132,7 @@ export const QuestionContainerSchema = z.object({
 // 8. Group under a scenario
 export const SubQuestionsSchema = z.object({
   scenario: z.string().optional(),
+  scenario_image_ids: z.array(z.string()).optional(),
   questions: z.array(QuestionContainerSchema),
 });
 
@@ -197,6 +198,7 @@ export interface NormalizedQuestion {
   type: string;
   question: string;
   scenario?: string;
+  scenario_image_ids?: string[];
   options?: MCQOption[];
   left_items?: string[];
   right_items?: string[];
@@ -240,6 +242,7 @@ export function flattenExamQuestions(payload: any): NormalizedQuestion[] {
       const normalized = normalizeQuestion(q);
       if (normalized) {
         normalized.scenario = group.scenario;
+        normalized.scenario_image_ids = group.scenario_image_ids;
         out.push(normalized);
       }
     }

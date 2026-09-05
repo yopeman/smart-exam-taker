@@ -6,8 +6,8 @@ from sqlalchemy import inspect
 
 from app.core.config import settings
 from app.core.database import Base, engine
-from app.models import Exam
-from app.routers import auth, attempts, exams, health, invitations, schools
+from app.models import Exam, File
+from app.routers import auth, attempts, exams, files, health, invitations, schools
 from app.services.grading_queue import start_grading_worker, stop_grading_worker
 from app.services.processing_queue import start_worker, stop_worker
 
@@ -66,6 +66,7 @@ app.include_router(schools.router, prefix=settings.API_V1_PREFIX)
 app.include_router(invitations.router, prefix=settings.API_V1_PREFIX)
 app.include_router(exams.router, prefix=settings.API_V1_PREFIX)
 app.include_router(attempts.router, prefix=settings.API_V1_PREFIX)
+app.include_router(files.router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/")

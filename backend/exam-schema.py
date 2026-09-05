@@ -103,7 +103,8 @@ class Question(BaseModel):
 
 ## 7. Grouping questions under a scenario (e.g., a reading passage)
 class SubQuestions(BaseModel):
-    scenario: Optional[str] = None    # context text, image URL, etc.
+    scenario: Optional[str] = None    # context text, etc.
+    scenario_image_ids: Optional[List[str]] = None  # file IDs for scenario images
     questions: List[Question]
 
 

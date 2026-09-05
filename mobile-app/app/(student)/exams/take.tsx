@@ -13,6 +13,7 @@ import {
   flattenExamQuestions,
   buildAttemptsPayload,
 } from '../../../lib/exam-schema';
+import { apiClient } from '../../../lib/api/client';
 
 function MCQAnswer({ qn, value, onChange, theme }) {
   const selected: string | null = typeof value === 'string' ? value : null;
@@ -156,6 +157,7 @@ export default function TakeExamScreen() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [questions, setQuestions] = useState<any[]>([]);
+  const [scenarioImages, setScenarioImages] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (id) {
@@ -166,6 +168,40 @@ export default function TakeExamScreen() {
   useEffect(() => {
     if (currentExam && step === 'questions') {
       setTimeLeft(currentExam.duration_minutes * 60);
+    }
+  }, [currentExam, step]);
+
+  useEffect(() => {
+    const fetchScenarioImages = async () => {
+      if (!currentExam?.questions) return;
+
+      const imageIds: string[] = [];
+      currentExam.questions.forEach((group: any) => {
+        if (group.scenario_image_ids && Array.isArray(group.scenario_image_ids)) {
+          imageIds.push(...group.scenario_image_ids);
+        }
+      });
+
+      if (imageIds.length === 0) return;
+
+      const imagesMap: Record<string, string> = {};
+      
+      for (const fileId of imageIds) {
+        try {
+          const response = await apiClient.get<{ data: string }>(`/files/${fileId}`);
+          if (response.data?.data) {
+            imagesMap[fileId] = `data:image/jpeg;base64,${response.data.data}`;
+          }
+        } catch (err) {
+          console.error(`Failed to fetch image ${fileId}:`, err);
+        }
+      }
+
+      setScenarioImages(imagesMap);
+    };
+
+    if (step === 'questions') {
+      fetchScenarioImages();
     }
   }, [currentExam, step]);
 
@@ -461,6 +497,11 @@ export default function TakeExamScreen() {
             questions.map((qn: any, index: number) => {
               const showScenario =
                 qn.scenario && (index === 0 || questions[index - 1].scenario !== qn.scenario);
+              const showImages =
+                qn.scenario_image_ids &&
+                Array.isArray(qn.scenario_image_ids) &&
+                qn.scenario_image_ids.length > 0 &&
+                (index === 0 || questions[index - 1].scenario_image_ids !== qn.scenario_image_ids);
               return (
                 <View key={qn.id || index}>
                   {showScenario && (
@@ -471,6 +512,31 @@ export default function TakeExamScreen() {
                       <Text style={[styles.scenarioText, { color: theme.colors.text }]}>
                         {qn.scenario}
                       </Text>
+                    </Card>
+                  )}
+                  {showImages && (
+                    <Card style={styles.scenarioCard}>
+                      <Text style={[styles.scenarioLabel, { color: theme.colors.primary }]}>
+                        Images
+                      </Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesScroll}>
+                        {qn.scenario_image_ids.map((imageId: string) => {
+                          const imageUri = scenarioImages[imageId];
+                          return (
+                            <View key={imageId} style={styles.imageContainer}>
+                              {imageUri ? (
+                                <Image source={{ uri: imageUri }} style={styles.scenarioImage} resizeMode="contain" />
+                              ) : (
+                                <View style={[styles.scenarioImage, styles.imagePlaceholder]}>
+                                  <Text style={[styles.imagePlaceholderText, { color: theme.colors.textSecondary }]}>
+                                    Loading...
+                                  </Text>
+                                </View>
+                              )}
+                            </View>
+                          );
+                        })}
+                      </ScrollView>
                     </Card>
                   )}
                   <Card style={styles.questionCard}>
@@ -657,6 +723,25 @@ const styles = StyleSheet.create({
   scenarioText: {
     fontSize: 14,
     lineHeight: 20,
+  },
+  imagesScroll: {
+    marginTop: 8,
+  },
+  imageContainer: {
+    marginRight: 8,
+  },
+  scenarioImage: {
+    width: 200,
+    height: 150,
+    borderRadius: 8,
+  },
+  imagePlaceholder: {
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imagePlaceholderText: {
+    fontSize: 12,
   },
   questionNumber: {
     fontWeight: '600',
