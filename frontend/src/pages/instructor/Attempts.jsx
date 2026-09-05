@@ -73,6 +73,65 @@ function readOnlyField(label, value) {
   )
 }
 
+function flattenExamQuestions(exam) {
+  const map = {}
+  ;(exam?.questions?.questions || []).forEach((group) => {
+    ;(group.questions || []).forEach((q) => {
+      map[q.id] = q
+    })
+  })
+  return map
+}
+
+function renderCorrectAnswer(q) {
+  if (!q) return <span className="italic text-gray-400">Unknown</span>
+  const inner = q.question || q
+  switch (inner.type) {
+    case 'mcq':
+      return (
+        <span>
+          {inner.correct_answer}
+          {inner.options && (
+            <span className="text-gray-500">
+              {' — '}
+              {inner.options.find((o) => o.letter === inner.correct_answer)?.option}
+            </span>
+          )}
+        </span>
+      )
+    case 'true_false':
+      return <span>{inner.correct_answer ? 'True' : 'False'}</span>
+    case 'matching':
+      return (
+        <span>
+          {Object.entries(inner.correct_mapping || {})
+            .map(([l, r]) => `${l}→${r}`)
+            .join(', ')}
+        </span>
+      )
+    case 'blank_space':
+      return <span>{Array.isArray(inner.correct_answers) ? inner.correct_answers.join(', ') : String(inner.correct_answers)}</span>
+    case 'short_answer':
+    case 'essay':
+      return (
+        <span className="whitespace-pre-wrap text-gray-700 dark:text-gray-300">
+          {String(inner.correct_answer ?? '—')}
+        </span>
+      )
+    default:
+      return <span>{String(inner.correct_answer ?? inner.correct_answers ?? '—')}</span>
+  }
+}
+
+function deriveCorrectness(detail, score) {
+  const val = score === '' || score == null ? 0 : Number(score) || 0
+  const max = Number(detail.point ?? detail.points) || 0
+  if (max <= 0) return detail.correctness || 'incorrect'
+  if (val >= max) return 'correct'
+  if (val > 0) return 'partial'
+  return 'incorrect'
+}
+
 function AttemptDetail({ attempt, exam, onClose, onSaved }) {
   const [scores, setScores] = useState(
     (attempt.grading_details || []).map((d) => (d.score != null ? d.score : 0))
@@ -83,6 +142,8 @@ function AttemptDetail({ attempt, exam, onClose, onSaved }) {
 
   const details = attempt.grading_details || []
   const hasDetails = details.length > 0
+
+  const questionMap = useMemo(() => flattenExamQuestions(exam), [exam])
 
   const objectiveTypes = ['mcq', 'true_false', 'matching', 'blank_space']
 
@@ -112,6 +173,7 @@ function AttemptDetail({ attempt, exam, onClose, onSaved }) {
       const updatedDetails = details.map((d, i) => ({
         ...d,
         score: scores[i] === '' ? 0 : Number(scores[i]),
+        correctness: deriveCorrectness(d, scores[i]),
       }))
       const saved = await apiClient.patch(`/attempts/${attempt.id}/scores`, {
         grading_details: updatedDetails,
@@ -215,65 +277,80 @@ function AttemptDetail({ attempt, exam, onClose, onSaved }) {
             <p className="mb-2 text-xs text-gray-500">
               Answers &amp; Grading
             </p>
-            {hasDetails ? (
+{hasDetails ? (
               <div className="space-y-3">
-                {details.map((d, i) => (
-                  <div
-                    key={i}
-                    className="rounded-md border border-gray-200 p-3 dark:border-gray-600"
-                  >
-                    <div className="mb-2 flex items-center justify-between">
-                      <p className="font-medium text-gray-900 dark:text-white">
-                        {d.question_id || `Q${d.index + 1}`}
-                        <span className="ml-2 text-xs font-normal text-gray-500">
-                          {d.type} · {d.point ?? d.points} pts
-                        </span>
-                      </p>
-                      {d.correctness != null && (
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                            d.correctness === 'correct'
-                              ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
-                              : d.correctness === 'partial'
-                                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
-                                : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
-                          }`}
-                        >
-                          {d.correctness === 'correct'
-                            ? 'Correct'
-                            : d.correctness === 'partial'
-                              ? 'Partial'
-                              : 'Incorrect'}
-                        </span>
+                {details.map((d, i) => {
+                          const q = questionMap[d.question_id]
+                          const inner = q?.question || q
+                          const liveCorrectness = deriveCorrectness(d, scores[i])
+                          return (
+                            <div
+                              key={i}
+                              className="rounded-md border border-gray-200 p-3 dark:border-gray-600"
+                            >
+                              <div className="mb-2 flex items-start justify-between gap-2">
+                                <p className="font-medium text-gray-900 dark:text-white">
+                                  {q ? inner?.question || q.id : d.question_id || `Q${d.index + 1}`}
+                                  <span className="ml-2 text-xs font-normal text-gray-500">
+                                    {d.type} · {d.point ?? d.points} pts
+                                  </span>
+                                </p>
+                                <span
+                                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                                    liveCorrectness === 'correct'
+                                      ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
+                                      : liveCorrectness === 'partial'
+                                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                                        : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+                                  }`}
+                                >
+                                  {liveCorrectness === 'correct'
+                                    ? 'Correct'
+                                    : liveCorrectness === 'partial'
+                                      ? 'Partial'
+                                      : 'Incorrect'}
+                                </span>
+                              </div>
+
+                      {q && (
+                        <p className="mb-2 break-all text-xs text-gray-400">{q.id}</p>
                       )}
-                    </div>
 
-                    <p className="mb-1 text-xs text-gray-500">Student Answer</p>
-                    <div className="mb-2 rounded bg-gray-50 p-2 text-xs dark:bg-gray-700/40">
-                      {renderAnswer(d)}
-                    </div>
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <div>
+                          <p className="mb-1 text-xs text-gray-500">Correct Answer</p>
+                          <div className="rounded bg-gray-50 p-2 text-xs text-gray-900 dark:bg-gray-700/40 dark:text-white">
+                            {renderCorrectAnswer(q)}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="mb-1 text-xs text-gray-500">Student Answer</p>
+                          <div className="rounded bg-gray-50 p-2 text-xs dark:bg-gray-700/40">
+                            {renderAnswer(d)}
+                          </div>
+                        </div>
+                      </div>
 
-                    {d.feedback != null && (
-                      <>
+                      <div className="mt-2">
                         <p className="mb-1 text-xs text-gray-500">Feedback</p>
-                        <p className="mb-2 rounded bg-gray-50 p-2 text-xs text-gray-800 dark:bg-gray-700/40 dark:text-gray-200">
-                          {d.feedback}
+                        <p className="rounded bg-gray-50 p-2 text-xs text-gray-800 dark:bg-gray-700/40 dark:text-gray-200">
+                          {d.feedback != null ? d.feedback : '—'}
                         </p>
-                      </>
-                    )}
+                      </div>
 
-                    <label className="flex items-center justify-between gap-3">
-                      <span className="text-xs text-gray-500">Score</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={scores[i]}
-                        onChange={(e) => updateScore(i, e.target.value)}
-                        className="w-28 rounded border border-gray-300 bg-white px-2 py-1 text-right text-gray-900 focus:border-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-                      />
-                    </label>
-                  </div>
-                ))}
+                      <label className="mt-2 flex items-center justify-between gap-3">
+                        <span className="text-xs text-gray-500">Score</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={scores[i]}
+                          onChange={(e) => updateScore(i, e.target.value)}
+                          className="w-28 rounded border border-gray-300 bg-white px-2 py-1 text-right text-gray-900 focus:border-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                        />
+                      </label>
+                    </div>
+                  )
+                })}
               </div>
             ) : (
               <pre className="max-h-60 overflow-auto rounded-md bg-gray-50 p-3 text-xs text-gray-800 dark:bg-gray-700/40 dark:text-gray-200">
