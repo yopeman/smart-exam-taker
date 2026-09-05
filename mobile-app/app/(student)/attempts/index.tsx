@@ -1,17 +1,29 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Image,
+  TouchableOpacity,
+  Pressable,
+  ActivityIndicator,
+} from 'react-native';
 import { useAttemptStore } from '../../../store/attemptStore';
 import { useTheme } from '../../../lib/theme/theme';
 import { Card } from '../../../components/ui/Card';
 import { Input } from '../../../components/ui/Input';
 import { usePagination, Pagination } from '../../../components/ui/Pagination';
 import AttemptDetailModal from '../../../components/attempts/AttemptDetailModal';
+import { exportAttemptToPdf } from '../../../lib/pdf/exportAttempt';
+import type { Attempt } from '../../../lib/api/attempts';
 
 export default function AttemptsScreen() {
   const { myAttempts, fetchMyAttempts, isLoading } = useAttemptStore();
   const { theme } = useTheme();
   const [selectedAttemptId, setSelectedAttemptId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [exportingId, setExportingId] = useState<string | null>(null);
 
   const filteredAttempts = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -58,6 +70,16 @@ export default function AttemptsScreen() {
 
   const getStatusText = (status: string) => {
     return status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ');
+  };
+
+  const handleExportDownload = async (attempt: Attempt) => {
+    if (exportingId) return;
+    setExportingId(attempt.id);
+    try {
+      await exportAttemptToPdf(attempt);
+    } finally {
+      setExportingId(null);
+    }
   };
 
   return (
@@ -143,6 +165,20 @@ export default function AttemptsScreen() {
                         {getStatusText(attempt.status)}
                       </Text>
                     </View>
+                    <Pressable
+                      onPress={() => handleExportDownload(attempt)}
+                      disabled={exportingId !== null}
+                      hitSlop={8}
+                      style={({ pressed }) => [styles.downloadButton, pressed && styles.downloadButtonPressed]}
+                    >
+                      {exportingId === attempt.id ? (
+                        <ActivityIndicator size="small" color={theme.colors.primary} />
+                      ) : (
+                        <Text style={[styles.downloadIcon, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.lg }]}>
+                          ⬇
+                        </Text>
+                      )}
+                    </Pressable>
                   </View>
 
                   <Text style={[styles.examTitle, { color: theme.colors.text, fontSize: theme.typography.sizes.lg }]}>
@@ -299,6 +335,18 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   statusText: {
+    fontWeight: '600',
+  },
+  downloadButton: {
+    marginLeft: 8,
+    padding: 6,
+    borderRadius: 8,
+  },
+  downloadButtonPressed: {
+    opacity: 0.6,
+    backgroundColor: '#00000010',
+  },
+  downloadIcon: {
     fontWeight: '600',
   },
   examTitle: {
