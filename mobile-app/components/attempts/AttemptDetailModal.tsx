@@ -246,6 +246,27 @@ export default function AttemptDetailModal({
           </View>
         </Card>
 
+        {currentAttempt.student_face_url && (
+          <Card style={styles.card}>
+            <Text style={[styles.detailLabel, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.xs }]}>
+              Captured Face
+            </Text>
+            <Image
+              source={{ uri: currentAttempt.student_face_url }}
+              style={[
+                styles.faceImage,
+                { borderColor: theme.colors.border },
+              ]}
+              resizeMode="cover"
+            />
+            {currentAttempt.face_captured_at && (
+              <Text style={[styles.detailMeta, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.xs }]}>
+                Captured: {new Date(currentAttempt.face_captured_at).toLocaleString()}
+              </Text>
+            )}
+          </Card>
+        )}
+
         <Card style={styles.card}>
           <View style={styles.infoRow}>
             <Text style={[styles.label, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.sm }]}>
@@ -565,6 +586,13 @@ const styles = StyleSheet.create({
   schoolAvatarText: {
     color: '#FFFFFF',
     fontWeight: 'bold',
+  },
+  faceImage: {
+    width: 112,
+    height: 112,
+    borderRadius: 8,
+    borderWidth: 1,
+    margin: 8,
   },
   schoolInfo: {
     flex: 1,
