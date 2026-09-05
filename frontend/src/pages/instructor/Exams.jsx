@@ -16,6 +16,8 @@ import {
   Clock,
   Copy,
   X,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react'
 
 const STATUS_STYLES = {
@@ -119,6 +121,8 @@ function buildTotal(groups) {
 
 function QuestionBuilder({ groups, setGroups }) {
   const [scenarioImages, setScenarioImages] = useState({})
+  const [modalImage, setModalImage] = useState(null)
+  const [zoom, setZoom] = useState(1)
 
   useEffect(() => {
     const fetchImages = async () => {
@@ -316,7 +320,11 @@ function QuestionBuilder({ groups, setGroups }) {
                         <img
                           src={scenarioImages[imageId]}
                           alt="Scenario"
-                          className="h-16 w-16 rounded-md border border-gray-300 object-cover dark:border-gray-600"
+                          className="h-16 w-16 rounded-md border border-gray-300 object-cover dark:border-gray-600 cursor-pointer"
+                          onClick={() => {
+                            setModalImage(scenarioImages[imageId])
+                            setZoom(1)
+                          }}
                         />
                       ) : (
                         <div className="h-16 w-16 rounded-md border border-gray-300 bg-gray-200 dark:border-gray-600 dark:bg-gray-700 flex items-center justify-center">
@@ -672,6 +680,42 @@ function QuestionBuilder({ groups, setGroups }) {
       >
         + Add Scenario Group
       </button>
+
+      {modalImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+          <div className="relative max-w-4xl max-h-[90vh] overflow-auto">
+            <img
+              src={modalImage}
+              alt="Enlarged"
+              style={{ transform: `scale(${zoom})`, transition: 'transform 0.2s' }}
+              className="max-w-full max-h-[90vh] object-contain"
+            />
+            <button
+              type="button"
+              onClick={() => setModalImage(null)}
+              className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-white text-black hover:bg-gray-200"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2">
+              <button
+                type="button"
+                onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-black hover:bg-gray-200"
+              >
+                <ZoomOut className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setZoom((z) => Math.min(3, z + 0.25))}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-black hover:bg-gray-200"
+              >
+                <ZoomIn className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
