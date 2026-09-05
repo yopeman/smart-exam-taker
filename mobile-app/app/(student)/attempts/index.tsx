@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
 import { useAttemptStore } from '../../../store/attemptStore';
 import { useTheme } from '../../../lib/theme/theme';
 import { Card } from '../../../components/ui/Card';
+import { Input } from '../../../components/ui/Input';
 import { usePagination, Pagination } from '../../../components/ui/Pagination';
 import AttemptDetailModal from '../../../components/attempts/AttemptDetailModal';
 
@@ -10,8 +11,32 @@ export default function AttemptsScreen() {
   const { myAttempts, fetchMyAttempts, isLoading } = useAttemptStore();
   const { theme } = useTheme();
   const [selectedAttemptId, setSelectedAttemptId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
 
-  const pagination = usePagination(myAttempts, 5);
+  const filteredAttempts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return myAttempts;
+    return myAttempts.filter((a) => {
+      const exam = a.exam ?? null;
+      const school = a.school ?? null;
+      const haystack = [
+        a.student_first_name,
+        a.student_last_name,
+        a.student_id_number,
+        a.department,
+        a.section,
+        exam?.title,
+        exam?.code,
+        school?.name,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [myAttempts, search]);
+
+  const pagination = usePagination(filteredAttempts, 5);
 
   useEffect(() => {
     fetchMyAttempts();
@@ -47,16 +72,23 @@ export default function AttemptsScreen() {
       </View>
 
       <ScrollView style={styles.scrollView}>
+        <Input
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Search by name, ID, exam, school..."
+          containerStyle={styles.searchInput}
+        />
+
         {isLoading ? (
           <View style={styles.center}>
             <Text style={[styles.loadingText, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.md }]}>
               Loading attempts...
             </Text>
           </View>
-        ) : myAttempts.length === 0 ? (
+        ) : filteredAttempts.length === 0 ? (
           <View style={styles.center}>
             <Text style={[styles.emptyText, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.md }]}>
-              No exam attempts yet
+              {myAttempts.length === 0 ? 'No exam attempts yet' : 'No attempts match your search'}
             </Text>
           </View>
         ) : (
@@ -227,6 +259,9 @@ const styles = StyleSheet.create({
   },
   attemptCard: {
     marginBottom: 16,
+  },
+  searchInput: {
+    marginTop: 4,
   },
   schoolRow: {
     flexDirection: 'row',

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { apiClient } from '../../lib/apiClient'
 import DashboardNavbar from '../../components/DashboardNavbar'
 import { usePagination, Pagination } from '../../components/Pagination'
-import { ClipboardList, User as UserIcon, ChevronRight, X } from 'lucide-react'
+import { ClipboardList, User as UserIcon, ChevronRight, X, Search } from 'lucide-react'
 
 const ATTEMPT_STATUS_STYLES = {
   in_progress: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
@@ -436,6 +436,7 @@ export default function Attempts() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [filterExam, setFilterExam] = useState('')
+  const [search, setSearch] = useState('')
   const [detail, setDetail] = useState(null)
 
   const handleSaved = (saved) => {
@@ -465,9 +466,26 @@ export default function Attempts() {
   }, [exams])
 
   const filtered = useMemo(() => {
-    if (!filterExam) return attempts
-    return attempts.filter((a) => a.exam_id === filterExam)
-  }, [attempts, filterExam])
+    const q = search.trim().toLowerCase()
+    return attempts.filter((a) => {
+      if (filterExam && a.exam_id !== filterExam) return false
+      if (!q) return true
+      const exam = examMap[a.exam_id]
+      const haystack = [
+        a.student_first_name,
+        a.student_last_name,
+        a.student_id_number,
+        a.department,
+        a.section,
+        exam?.title,
+        exam?.code,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      return haystack.includes(q)
+    })
+  }, [attempts, filterExam, search, examMap])
 
   const pagination = usePagination(filtered)
 
@@ -489,22 +507,39 @@ export default function Attempts() {
           </div>
         )}
 
-        <div className="mb-6">
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Filter by Exam
-          </label>
-          <select
-            value={filterExam}
-            onChange={(e) => setFilterExam(e.target.value)}
-            className="w-full max-w-sm rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">All exams</option>
-            {exams.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.title} ({e.code})
-              </option>
-            ))}
-          </select>
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Search
+            </label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Student name, ID, department, section, exam..."
+                className="w-full rounded-md border border-gray-300 py-2 pl-9 pr-3 text-sm focus:border-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Filter by Exam
+            </label>
+            <select
+              value={filterExam}
+              onChange={(e) => setFilterExam(e.target.value)}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+            >
+              <option value="">All exams</option>
+              {exams.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.title} ({e.code})
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {loading ? (
