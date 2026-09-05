@@ -2,7 +2,17 @@ import { useState, useEffect, useMemo } from 'react'
 import { apiClient } from '../../lib/apiClient'
 import DashboardNavbar from '../../components/DashboardNavbar'
 import { usePagination, Pagination } from '../../components/Pagination'
-import { ClipboardList, User as UserIcon, ChevronRight, X, Search } from 'lucide-react'
+import {
+  ClipboardList,
+  User as UserIcon,
+  ChevronRight,
+  X,
+  Search,
+  Download,
+} from 'lucide-react'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
+import * as XLSX from 'xlsx'
 
 const ATTEMPT_STATUS_STYLES = {
   in_progress: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
@@ -130,6 +140,372 @@ function deriveCorrectness(detail, score) {
   if (val >= max) return 'correct'
   if (val > 0) return 'partial'
   return 'incorrect'
+}
+
+function exportStamp() {
+  const d = new Date()
+  const p = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`
+}
+
+function escapeCSV(value) {
+  const s = String(value ?? '')
+  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`
+  return s
+}
+
+function downloadText(filename, mime, content) {
+  const blob = new Blob([content], { type: `${mime};charset=utf-8;` })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
+const EXPORT_TABLE_OPTIONS = [
+  {
+    key: 'student',
+    label: 'Student Name',
+    value: (a) => `${a.student_first_name} ${a.student_last_name}`.trim(),
+  },
+  { key: 'student_id', label: 'ID Number', value: (a) => a.student_id_number },
+  { key: 'department', label: 'Department', value: (a) => a.department || '' },
+  { key: 'section', label: 'Section', value: (a) => a.section || '' },
+  {
+    key: 'year_semester',
+    label: 'Year / Semester',
+    value: (a) => `${a.year_of_study || ''} / ${a.semester || ''}`,
+  },
+  {
+    key: 'school',
+    label: 'School',
+    value: (a, exam) => exam?.school?.name || '',
+  },
+  { key: 'exam_title', label: 'Exam Title', value: (a, exam) => exam?.title || '' },
+  { key: 'exam_code', label: 'Exam Code', value: (a, exam) => exam?.code || '' },
+  { key: 'status', label: 'Status', value: (a) => a.status },
+  {
+    key: 'objective_score',
+    label: 'Objective Score',
+    value: (a) => (a.objective_score ?? ''),
+  },
+  { key: 'ai_score', label: 'AI Score', value: (a) => (a.ai_score ?? '') },
+  { key: 'total_score', label: 'Total Score', value: (a) => (a.total_score ?? '') },
+  { key: 'started_at', label: 'Started', value: (a) => formatDate(a.started_at) },
+  { key: 'submitted_at', label: 'Submitted', value: (a) => formatDate(a.submitted_at) },
+  { key: 'graded_at', label: 'Graded', value: (a) => formatDate(a.graded_at) },
+]
+
+const EXPORT_PDF_OPTIONS = [
+  {
+    key: 'school',
+    label: 'School',
+    value: (a, exam) =>
+      [exam?.school?.name, exam?.school?.location].filter(Boolean).join(', ') || '—',
+  },
+  {
+    key: 'exam',
+    label: 'Exam',
+    value: (a, exam) => `${exam?.title || 'Unknown exam'} (${exam?.code || '—'})`,
+  },
+  {
+    key: 'student',
+    label: 'Student Name',
+    value: (a) => `${a.student_first_name} ${a.student_last_name}`.trim() || '—',
+  },
+  { key: 'student_id', label: 'ID Number', value: (a) => a.student_id_number || '—' },
+  { key: 'department', label: 'Department', value: (a) => a.department || '—' },
+  { key: 'section', label: 'Section', value: (a) => a.section || '—' },
+  {
+    key: 'year_semester',
+    label: 'Year / Semester',
+    value: (a) => `${a.year_of_study || '—'} / ${a.semester || '—'}`,
+  },
+  { key: 'status', label: 'Status', value: (a) => a.status },
+  {
+    key: 'objective_score',
+    label: 'Objective Score',
+    value: (a) => (a.objective_score ?? '—'),
+  },
+  { key: 'ai_score', label: 'AI Score', value: (a) => (a.ai_score ?? '—') },
+  { key: 'total_score', label: 'Total Score', value: (a) => (a.total_score ?? '—') },
+  { key: 'started_at', label: 'Started', value: (a) => formatDate(a.started_at) },
+  { key: 'submitted_at', label: 'Submitted', value: (a) => formatDate(a.submitted_at) },
+  { key: 'graded_at', label: 'Graded', value: (a) => formatDate(a.graded_at) },
+  { key: 'answers', label: 'Answers & Grading', value: null },
+]
+
+function exportCSV(attempts, examMap, columns) {
+  const lines = []
+  lines.push(columns.map((c) => escapeCSV(c.label)).join(','))
+  attempts.forEach((a) => {
+    const exam = examMap[a.exam_id]
+    lines.push(columns.map((c) => escapeCSV(c.value(a, exam))).join(','))
+  })
+  downloadText(`attempts_${exportStamp()}.csv`, 'text/csv', lines.join('\r\n'))
+}
+
+function exportXLS(attempts, examMap, columns) {
+  const rows = [
+    columns.map((c) => c.label),
+    ...attempts.map((a) => {
+      const exam = examMap[a.exam_id]
+      return columns.map((c) => c.value(a, exam))
+    }),
+  ]
+  const wb = XLSX.utils.book_new()
+  const ws = XLSX.utils.aoa_to_sheet(rows)
+  XLSX.utils.book_append_sheet(wb, ws, 'Attempts')
+  XLSX.writeFile(wb, `attempts_${exportStamp()}.xlsx`)
+}
+
+function correctAnswerText(q) {
+  if (!q) return 'Unknown'
+  const inner = q.question || q
+  switch (inner.type) {
+    case 'mcq': {
+      const option = (inner.options || []).find((o) => o.letter === inner.correct_answer)
+      return option ? `${inner.correct_answer} — ${option.option}` : String(inner.correct_answer ?? '—')
+    }
+    case 'true_false':
+      return inner.correct_answer ? 'True' : 'False'
+    case 'matching':
+      return Object.entries(inner.correct_mapping || {})
+        .map(([l, r]) => `${l}→${r}`)
+        .join(', ')
+    case 'blank_space':
+      return Array.isArray(inner.correct_answers)
+        ? inner.correct_answers.join(', ')
+        : String(inner.correct_answers ?? '—')
+    case 'short_answer':
+    case 'essay':
+      return String(inner.correct_answer ?? '—')
+    default:
+      return String(inner.correct_answer ?? inner.correct_answers ?? '—')
+  }
+}
+
+function studentAnswerText(d) {
+  const { type, answer } = d
+  if (type === 'short_answer' || type === 'essay') {
+    return answer == null || answer === '' ? 'No answer submitted' : String(answer)
+  }
+  if (type === 'true_false') {
+    return answer === true ? 'True' : answer === false ? 'False' : '—'
+  }
+  if (type === 'matching' && answer && typeof answer === 'object') {
+    return Object.entries(answer)
+      .map(([l, r]) => `${l}→${r}`)
+      .join(', ')
+  }
+  if (answer == null) return 'No answer submitted'
+  if (Array.isArray(answer)) return answer.map(String).join(', ')
+  return String(answer)
+}
+
+function exportPDF(attempts, examMap, options) {
+  const doc = new jsPDF()
+  const profile = options.filter((o) => o.key !== 'answers')
+  const withAnswers = options.some((o) => o.key === 'answers')
+
+  attempts.forEach((a, idx) => {
+    if (idx > 0) doc.addPage()
+    const exam = examMap[a.exam_id]
+
+    doc.setFontSize(16)
+    doc.text('Attempt Details', 14, 14)
+    doc.setFontSize(10)
+    doc.setTextColor(100)
+    doc.text(
+      `Attempt #${idx + 1} of ${attempts.length} · ${a.student_first_name} ${a.student_last_name}`,
+      14,
+      20
+    )
+    doc.setTextColor(0)
+
+    autoTable(doc, {
+      startY: 26,
+      theme: 'grid',
+      head: [['Field', 'Value']],
+      body: profile.map((o) => [o.label, o.value(a, exam)]),
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [79, 70, 229] },
+      columnStyles: { 0: { cellWidth: 50, fontStyle: 'bold' } },
+    })
+
+    const details = a.grading_details || []
+    if (withAnswers && details.length > 0) {
+      const questionMap = flattenExamQuestions(exam)
+      let y = doc.lastAutoTable.finalY + 10
+      doc.setFontSize(12)
+      doc.text('Answers & Grading', 14, y)
+      y += 4
+      autoTable(doc, {
+        startY: y,
+        theme: 'grid',
+        head: [['Question', 'Type', 'Correct Answer', 'Student Answer', 'Score', 'Result']],
+        body: details.map((d) => {
+          const q = questionMap[d.question_id]
+          const inner = q?.question || q
+          return [
+            (q ? inner?.question || q.id : d.question_id) || `Q${d.index + 1}`,
+            d.type,
+            correctAnswerText(q),
+            studentAnswerText(d),
+            `${Number(d.score ?? 0).toFixed(1)} / ${d.point ?? d.points}`,
+            d.correctness || '—',
+          ]
+        }),
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [79, 70, 229] },
+        columnStyles: {
+          0: { cellWidth: 55 },
+          1: { cellWidth: 25 },
+          2: { cellWidth: 40 },
+          3: { cellWidth: 40 },
+          4: { cellWidth: 22 },
+        },
+      })
+      if (doc.lastAutoTable.finalY > 280) {
+        const fb = details.some((d) => d.feedback != null)
+        if (fb) {
+          doc.addPage()
+          autoTable(doc, {
+            startY: 14,
+            theme: 'grid',
+            head: [['Question', 'Feedback']],
+            body: details.map((d) => [
+              questionMap[d.question_id]?.question?.question || d.question_id || `Q${d.index + 1}`,
+              d.feedback != null ? d.feedback : '—',
+            ]),
+            styles: { fontSize: 9 },
+            headStyles: { fillColor: [79, 70, 229] },
+            columnStyles: { 0: { cellWidth: 60 } },
+          })
+        }
+      }
+    }
+  })
+
+  doc.save(`attempts_${exportStamp()}.pdf`)
+}
+
+function ExportModal({ attempts, examMap, onClose }) {
+  const [format, setFormat] = useState('csv')
+  const initialKeys = (opts) => opts.map((o) => o.key)
+  const [selected, setSelected] = useState(() => initialKeys(EXPORT_TABLE_OPTIONS))
+
+  const options = format === 'pdf' ? EXPORT_PDF_OPTIONS : EXPORT_TABLE_OPTIONS
+
+  const changeFormat = (f) => {
+    setFormat(f)
+    setSelected(initialKeys(f === 'pdf' ? EXPORT_PDF_OPTIONS : EXPORT_TABLE_OPTIONS))
+  }
+
+  const toggle = (key) => {
+    setSelected((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    )
+  }
+
+  const runExport = () => {
+    const columns = options.filter((o) => selected.includes(o.key))
+    if (format === 'csv') exportCSV(attempts, examMap, columns)
+    else if (format === 'xls') exportXLS(attempts, examMap, columns)
+    else exportPDF(attempts, examMap, columns)
+    onClose()
+  }
+
+  const formats = [
+    { key: 'csv', title: 'CSV', desc: 'Comma-separated table' },
+    { key: 'xls', title: 'Excel (.xlsx)', desc: 'Same columns as CSV, real .xlsx file' },
+    { key: 'pdf', title: 'PDF', desc: 'One page per attempt with detailed content' },
+  ]
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800 max-h-[90vh] overflow-y-auto">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Export Attempts
+          </h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="mb-4 flex gap-2">
+          {formats.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => changeFormat(f.key)}
+              className={`flex-1 rounded-md border px-3 py-2 text-left text-sm transition ${
+                format === f.key
+                  ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30'
+                  : 'border-gray-300 hover:border-indigo-300 dark:border-gray-600'
+              }`}
+            >
+              <span className="font-medium text-gray-900 dark:text-white">{f.title}</span>
+              <span className="block text-xs text-gray-500">{f.desc}</span>
+            </button>
+          ))}
+        </div>
+
+        <div>
+          <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+            Columns to include
+          </p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {options.map((o) => (
+              <label
+                key={o.key}
+                className="flex cursor-pointer items-center gap-2 rounded-md border border-gray-200 px-3 py-2 text-sm dark:border-gray-600"
+              >
+                <input
+                  type="checkbox"
+                  checked={selected.includes(o.key)}
+                  onChange={() => toggle(o.key)}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <span className="text-gray-900 dark:text-white">{o.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {selected.length === 0 && (
+          <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+            Select at least one column to export.
+          </p>
+        )}
+
+        <div className="mt-4 flex items-center justify-between">
+          <p className="text-xs text-gray-500">
+            Exporting {attempts.length} attempt{attempts.length === 1 ? '' : 's'}
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={onClose}
+              className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={runExport}
+              disabled={selected.length === 0}
+              className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            >
+              Export
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function AttemptDetail({ attempt, exam, onClose, onSaved }) {
@@ -438,6 +814,7 @@ export default function Attempts() {
   const [filterExam, setFilterExam] = useState('')
   const [search, setSearch] = useState('')
   const [detail, setDetail] = useState(null)
+  const [showExport, setShowExport] = useState(false)
 
   const handleSaved = (saved) => {
     setAttempts((prev) =>
@@ -494,11 +871,26 @@ export default function Attempts() {
       <DashboardNavbar title="Attempts" />
 
       <main className="px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Attempts</h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            Student submissions across all exams you can manage
-          </p>
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Attempts</h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              Student submissions across all exams you can manage
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-gray-500">
+              {filtered.length} result{filtered.length === 1 ? '' : 's'}
+            </span>
+            <button
+              onClick={() => setShowExport(true)}
+              disabled={filtered.length === 0}
+              className="flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            >
+              <Download className="h-4 w-4" />
+              Export
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -602,6 +994,14 @@ export default function Attempts() {
           exam={examMap[detail.exam_id]}
           onClose={() => setDetail(null)}
           onSaved={handleSaved}
+        />
+      )}
+
+      {showExport && (
+        <ExportModal
+          attempts={filtered}
+          examMap={examMap}
+          onClose={() => setShowExport(false)}
         />
       )}
     </div>
