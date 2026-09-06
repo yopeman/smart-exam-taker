@@ -9,7 +9,6 @@ export default function StudentLayout() {
       <Stack.Screen name="exams/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="exams/take" options={{ headerShown: false }} />
       <Stack.Screen name="attempts/index" options={{ headerShown: false }} />
-      <Stack.Screen name="attempts/[id]" options={{ headerShown: false }} />
     </Stack>
   );
 }
