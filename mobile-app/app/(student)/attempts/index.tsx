@@ -17,6 +17,7 @@ import { usePagination, Pagination } from '../../../components/ui/Pagination';
 import AttemptDetailModal from '../../../components/attempts/AttemptDetailModal';
 import { exportAttemptToPdf } from '../../../lib/pdf/exportAttempt';
 import type { Attempt } from '../../../lib/api/attempts';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function AttemptsScreen() {
   const { myAttempts, fetchMyAttempts, isLoading } = useAttemptStore();
@@ -174,9 +175,7 @@ export default function AttemptsScreen() {
                       {exportingId === attempt.id ? (
                         <ActivityIndicator size="small" color={theme.colors.primary} />
                       ) : (
-                        <Text style={[styles.downloadIcon, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.lg }]}>
-                          ⬇
-                        </Text>
+                        <Ionicons name="download-outline" size={22} color={theme.colors.textSecondary} />
                       )}
                     </Pressable>
                   </View>
@@ -345,9 +344,6 @@ const styles = StyleSheet.create({
   downloadButtonPressed: {
     opacity: 0.6,
     backgroundColor: '#00000010',
-  },
-  downloadIcon: {
-    fontWeight: '600',
   },
   examTitle: {
     fontWeight: '600',
