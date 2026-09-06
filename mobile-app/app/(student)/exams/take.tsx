@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Image, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Image, Modal, Keyboard } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useExamStore } from '../../../store/examStore';
@@ -189,7 +189,8 @@ export default function TakeExamScreen() {
   const { theme } = useTheme();
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
-  
+  const scrollRef = useRef<ScrollView>(null);
+
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   
   const [step, setStep] = useState<'info' | 'camera' | 'questions' | 'submit'>('info');
@@ -212,12 +213,26 @@ export default function TakeExamScreen() {
   const [scenarioImages, setScenarioImages] = useState<Record<string, string>>({});
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
     if (id) {
       fetchStudentExamById(id);
     }
   }, [id]);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardHeight(0);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (currentExam && step === 'questions') {
@@ -397,7 +412,12 @@ export default function TakeExamScreen() {
   if (step === 'info') {
     return (
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <ScrollView style={styles.scrollView}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={{ paddingBottom: keyboardHeight + 24 }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+        >
           <View style={styles.header}>
             <Text style={[styles.title, { color: theme.colors.text, fontSize: theme.typography.sizes['2xl'] }]}>
               Student Information
@@ -544,7 +564,13 @@ export default function TakeExamScreen() {
           </Text>
         </View>
 
-        <ScrollView style={styles.scrollView}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={{ paddingBottom: keyboardHeight + 24 }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          ref={scrollRef}
+        >
           <View style={styles.header}>
             <Text style={[styles.title, { color: theme.colors.text, fontSize: theme.typography.sizes.xl }]}>
               {currentExam?.title}
