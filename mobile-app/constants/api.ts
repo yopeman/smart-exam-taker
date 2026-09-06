@@ -1,5 +1,5 @@
 export const API_CONFIG = {
-  BASE_URL: __DEV__ ? 'http://localhost:8000/api/v1' : 'https://api.smartexamtaker.com/api/v1',
+  BASE_URL: !__DEV__ ? 'http://localhost:8000/api/v1' : 'https://brittny-reprehensible-joel.ngrok-free.dev/api/v1',
   TIMEOUT: 30000,
 };
 

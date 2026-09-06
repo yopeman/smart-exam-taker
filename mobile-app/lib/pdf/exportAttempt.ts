@@ -1,7 +1,17 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import { File, Paths } from 'expo-file-system';
 import { Platform, Alert } from 'react-native';
 import type { Attempt } from '../api/attempts';
+
+function base64ToUint8Array(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
 
 function escapeHtml(value: any): string {
   return String(value ?? '')
@@ -230,15 +240,24 @@ export async function exportAttemptToPdf(attempt: Attempt): Promise<void> {
     return;
   }
   try {
-    const { uri } = await Print.printToFileAsync({ html: buildAttemptHtml(attempt) });
+    const { base64 } = await Print.printToFileAsync({
+      html: buildAttemptHtml(attempt),
+      base64: true,
+    });
+    if (!base64) {
+      throw new Error('Print did not return PDF data');
+    }
+    const fileName = `attempt-${attempt.id || Date.now()}.pdf`;
+    const destination = new File(Paths.cache, fileName);
+    destination.write(base64ToUint8Array(base64));
     if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(uri, {
+      await Sharing.shareAsync(destination.uri, {
         mimeType: 'application/pdf',
         dialogTitle: 'Export attempt as PDF',
         UTI: 'com.adobe.pdf',
       });
     } else {
-      Alert.alert('PDF generated', uri);
+      Alert.alert('PDF generated', destination.uri);
     }
   } catch (err: any) {
     Alert.alert('Failed to generate PDF', err?.message || 'Something went wrong');
