@@ -763,11 +763,6 @@ export default function TakeExamScreen() {
             Your exam has been submitted successfully
           </Text>
           <Button
-            title="View Results"
-            onPress={() => router.push('/(student)/attempts')}
-            style={{ marginBottom: 14 }}
-          />
-          <Button
             title="Back to Dashboard"
             onPress={() => router.replace('/(student)')}
             variant="outline"

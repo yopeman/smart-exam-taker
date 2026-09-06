@@ -72,10 +72,6 @@ export default function StudentDashboard() {
 
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text, fontSize: theme.typography.sizes.lg }]}>
-            Quick Actions
-          </Text>
-
           <Card variant="elevated" style={styles.actionCard}>
             <Text style={[styles.actionTitle, { color: theme.colors.text, fontSize: theme.typography.sizes.md }]}>
               Take an Exam
