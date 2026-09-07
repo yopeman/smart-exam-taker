@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { Lock, ArrowLeft, CheckCircle, Eye, EyeOff } from 'lucide-react'
 import { apiFetch } from '../../lib/apiClient'
+import ThemeToggle from '../../components/ThemeToggle'
 
 function ResetPasswordPage() {
   const [searchParams] = useSearchParams()
@@ -85,14 +86,17 @@ function ResetPasswordPage() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 flex items-center justify-center px-4 py-12">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center px-4 py-12">
         <div className="max-w-md w-full">
-          <div className="bg-white rounded-2xl shadow-xl p-8 md:p-10 text-center">
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="w-10 h-10 text-green-600" />
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 md:p-10 text-center">
+            <div className="flex justify-end mb-4">
+              <ThemeToggle />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Password Reset Successful!</h1>
-            <p className="text-gray-600 mb-6">
+            <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Password Reset Successful!</h1>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
               Your password has been successfully reset. You can now log in with your new password.
             </p>
             <Link
@@ -110,11 +114,14 @@ function ResetPasswordPage() {
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 flex items-center justify-center px-4 py-12">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center px-4 py-12">
         <div className="max-w-md w-full">
-          <div className="bg-white rounded-2xl shadow-xl p-8 md:p-10 text-center">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Invalid Reset Link</h1>
-            <p className="text-gray-600 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 md:p-10 text-center">
+            <div className="flex justify-end mb-4">
+              <ThemeToggle />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Invalid Reset Link</h1>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
               The password reset link is invalid. Please request a new password reset.
             </p>
             <div className="space-y-4">
@@ -126,7 +133,7 @@ function ResetPasswordPage() {
               </Link>
               <Link
                 to="/login"
-                className="inline-flex items-center justify-center gap-2 text-indigo-600 hover:text-indigo-700 font-semibold w-full"
+                className="inline-flex items-center justify-center gap-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-semibold w-full"
               >
                 Back to Login
                 <ArrowLeft className="w-5 h-5" />
@@ -139,37 +146,40 @@ function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center px-4 py-12">
       <div className="max-w-md w-full">
-        <div className="bg-white rounded-2xl shadow-xl p-8 md:p-10">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 md:p-10">
+          <div className="flex justify-end mb-4">
+            <ThemeToggle />
+          </div>
           <div className="mb-8">
             <Link
               to="/login"
-              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors mb-6"
+              className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-6"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Login
             </Link>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Reset Password</h1>
-            <p className="text-gray-600">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Reset Password</h1>
+            <p className="text-gray-600 dark:text-gray-300">
               Enter your new password below.
             </p>
           </div>
 
           {submitError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-              <p className="text-red-700 text-sm">{submitError}</p>
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+              <p className="text-red-700 dark:text-red-300 text-sm">{submitError}</p>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 New Password
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
+                  <Lock className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -177,30 +187,30 @@ function ResetPasswordPage() {
                   name="newPassword"
                   value={formData.newPassword}
                   onChange={handleInputChange}
-                  className={`w-full pl-10 pr-12 py-3 rounded-lg border ${
-                    errors.newPassword ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-indigo-500'
-                  } focus:ring-2 focus:ring-indigo-200 outline-none transition-all`}
+                  className={`w-full pl-10 pr-12 py-3 rounded-lg border bg-white dark:bg-gray-700 ${
+                    errors.newPassword ? 'border-red-300 focus:border-red-500' : 'border-gray-300 dark:border-gray-600 focus:border-indigo-500'
+                  } focus:ring-2 focus:ring-indigo-200 outline-none transition-all text-gray-900 dark:text-white`}
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
-              {errors.newPassword && <p className="mt-1 text-sm text-red-600">{errors.newPassword}</p>}
-              <p className="mt-1 text-xs text-gray-500">Must be at least 8 characters with at least one digit</p>
+              {errors.newPassword && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.newPassword}</p>}
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Must be at least 8 characters with at least one digit</p>
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Confirm New Password
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
+                  <Lock className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 </div>
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
@@ -208,20 +218,20 @@ function ResetPasswordPage() {
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  className={`w-full pl-10 pr-12 py-3 rounded-lg border ${
-                    errors.confirmPassword ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-indigo-500'
-                  } focus:ring-2 focus:ring-indigo-200 outline-none transition-all`}
+                  className={`w-full pl-10 pr-12 py-3 rounded-lg border bg-white dark:bg-gray-700 ${
+                    errors.confirmPassword ? 'border-red-300 focus:border-red-500' : 'border-gray-300 dark:border-gray-600 focus:border-indigo-500'
+                  } focus:ring-2 focus:ring-indigo-200 outline-none transition-all text-gray-900 dark:text-white`}
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                 >
                   {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
-              {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
+              {errors.confirmPassword && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.confirmPassword}</p>}
             </div>
 
             <button

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Lock, Mail, User, ArrowRight, CheckCircle, RefreshCw } from 'lucide-react'
 import { apiFetch } from '../../lib/apiClient'
+import ThemeToggle from '../../components/ThemeToggle'
 
 function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -114,20 +115,23 @@ function RegisterPage() {
 
   if (submitSuccess) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 flex items-center justify-center px-4 py-12">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center px-4 py-12">
         <div className="max-w-md w-full">
-          <div className="bg-white rounded-2xl shadow-xl p-8 md:p-10 text-center">
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="w-10 h-10 text-green-600" />
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 md:p-10 text-center">
+            <div className="flex justify-end mb-4">
+              <ThemeToggle />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Registration Successful!</h1>
-            <p className="text-gray-600 mb-6">
+            <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Registration Successful!</h1>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
               Please check your email to verify your account before logging in.
             </p>
             
             {resendMessage && (
               <div className={`mb-4 p-3 rounded-lg text-sm ${
-                resendMessage.includes('sent') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                resendMessage.includes('sent') ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
               }`}>
                 {resendMessage}
               </div>
@@ -154,7 +158,7 @@ function RegisterPage() {
               
               <Link
                 to="/login"
-                className="inline-flex items-center justify-center gap-2 text-indigo-600 hover:text-indigo-700 font-semibold"
+                className="inline-flex items-center justify-center gap-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-semibold"
               >
                 Go to Login
                 <ArrowRight className="w-5 h-5" />
@@ -167,28 +171,31 @@ function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center px-4 py-12">
       <div className="max-w-md w-full">
-        <div className="bg-white rounded-2xl shadow-xl p-8 md:p-10">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 md:p-10">
+          <div className="flex justify-end mb-4">
+            <ThemeToggle />
+          </div>
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
-            <p className="text-gray-600">Join Smart Exam Taker today</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Create Account</h1>
+            <p className="text-gray-600 dark:text-gray-300">Join Smart Exam Taker today</p>
           </div>
 
           {submitError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-              <p className="text-red-700 text-sm">{submitError}</p>
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+              <p className="text-red-700 dark:text-red-300 text-sm">{submitError}</p>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Full Name
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-gray-400" />
+                  <User className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 </div>
                 <input
                   type="text"
@@ -196,22 +203,22 @@ function RegisterPage() {
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
-                    errors.name ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-indigo-500'
-                  } focus:ring-2 focus:ring-indigo-200 outline-none transition-all`}
+                  className={`w-full pl-10 pr-4 py-3 rounded-lg border bg-white dark:bg-gray-700 ${
+                    errors.name ? 'border-red-300 focus:border-red-500' : 'border-gray-300 dark:border-gray-600 focus:border-indigo-500'
+                  } focus:ring-2 focus:ring-indigo-200 outline-none transition-all text-gray-900 dark:text-white`}
                   placeholder="John Doe"
                 />
               </div>
-              {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+              {errors.name && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.name}</p>}
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Email Address
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
+                  <Mail className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 </div>
                 <input
                   type="email"
@@ -219,22 +226,22 @@ function RegisterPage() {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
-                    errors.email ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-indigo-500'
-                  } focus:ring-2 focus:ring-indigo-200 outline-none transition-all`}
+                  className={`w-full pl-10 pr-4 py-3 rounded-lg border bg-white dark:bg-gray-700 ${
+                    errors.email ? 'border-red-300 focus:border-red-500' : 'border-gray-300 dark:border-gray-600 focus:border-indigo-500'
+                  } focus:ring-2 focus:ring-indigo-200 outline-none transition-all text-gray-900 dark:text-white`}
                   placeholder="your@email.com"
                 />
               </div>
-              {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+              {errors.email && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email}</p>}
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Password
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
+                  <Lock className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 </div>
                 <input
                   type="password"
@@ -242,23 +249,23 @@ function RegisterPage() {
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
-                    errors.password ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-indigo-500'
-                  } focus:ring-2 focus:ring-indigo-200 outline-none transition-all`}
+                  className={`w-full pl-10 pr-4 py-3 rounded-lg border bg-white dark:bg-gray-700 ${
+                    errors.password ? 'border-red-300 focus:border-red-500' : 'border-gray-300 dark:border-gray-600 focus:border-indigo-500'
+                  } focus:ring-2 focus:ring-indigo-200 outline-none transition-all text-gray-900 dark:text-white`}
                   placeholder="••••••••"
                 />
               </div>
-              {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
-              <p className="mt-1 text-xs text-gray-500">Must be at least 8 characters with at least one digit</p>
+              {errors.password && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.password}</p>}
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Must be at least 8 characters with at least one digit</p>
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Confirm Password
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
+                  <Lock className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 </div>
                 <input
                   type="password"
@@ -266,13 +273,13 @@ function RegisterPage() {
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
-                    errors.confirmPassword ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-indigo-500'
-                  } focus:ring-2 focus:ring-indigo-200 outline-none transition-all`}
+                  className={`w-full pl-10 pr-4 py-3 rounded-lg border bg-white dark:bg-gray-700 ${
+                    errors.confirmPassword ? 'border-red-300 focus:border-red-500' : 'border-gray-300 dark:border-gray-600 focus:border-indigo-500'
+                  } focus:ring-2 focus:ring-indigo-200 outline-none transition-all text-gray-900 dark:text-white`}
                   placeholder="••••••••"
                 />
               </div>
-              {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
+              {errors.confirmPassword && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.confirmPassword}</p>}
             </div>
 
             <button
@@ -290,18 +297,18 @@ function RegisterPage() {
           </form>
 
           <div className="mt-8 text-center">
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-300">
               Already have an account?{' '}
-              <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+              <Link to="/login" className="font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300">
                 Sign in
               </Link>
             </p>
           </div>
 
-          <div className="mt-6 pt-6 border-t border-gray-200">
+          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
             <Link
               to="/"
-              className="flex items-center justify-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              className="flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
               <ArrowRight className="w-4 h-4 rotate-180" />
               Back to Home

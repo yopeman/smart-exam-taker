@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { CheckCircle, XCircle, ArrowRight, Mail, RefreshCw } from 'lucide-react'
 import { apiFetch } from '../../lib/apiClient'
+import ThemeToggle from '../../components/ThemeToggle'
 
 function VerifyEmailPage() {
   const [searchParams] = useSearchParams()
@@ -40,24 +41,27 @@ function VerifyEmailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center px-4 py-12">
       <div className="max-w-md w-full">
-        <div className="bg-white rounded-2xl shadow-xl p-8 md:p-10 text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 md:p-10 text-center">
+          <div className="flex justify-end mb-4">
+            <ThemeToggle />
+          </div>
           <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${
-            isSuccess ? 'bg-green-100' : 'bg-red-100'
+            isSuccess ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'
           }`}>
             {isSuccess ? (
-              <CheckCircle className="w-10 h-10 text-green-600" />
+              <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
             ) : (
-              <XCircle className="w-10 h-10 text-red-600" />
+              <XCircle className="w-10 h-10 text-red-600 dark:text-red-400" />
             )}
           </div>
 
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             {isSuccess ? 'Email Verified!' : 'Verification Failed'}
           </h1>
 
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 dark:text-gray-300 mb-6">
             {detail || (isSuccess 
               ? 'Your email has been successfully verified. You can now log in to your account.'
               : 'There was an issue verifying your email. The link may be invalid or expired.')
@@ -75,19 +79,19 @@ function VerifyEmailPage() {
           ) : (
             <div className="space-y-4">
               <div className="text-left">
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Enter your email to resend verification link
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-5 w-5 text-gray-400" />
+                    <Mail className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                   </div>
                   <input
                     type="email"
                     id="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all"
+                    className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all text-gray-900 dark:text-white"
                     placeholder="your@email.com"
                   />
                 </div>
@@ -95,7 +99,7 @@ function VerifyEmailPage() {
               
               {resendMessage && (
                 <div className={`p-3 rounded-lg text-sm ${
-                  resendMessage.includes('sent') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                  resendMessage.includes('sent') ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
                 }`}>
                   {resendMessage}
                 </div>
@@ -122,14 +126,14 @@ function VerifyEmailPage() {
               <div className="flex flex-col gap-2">
                 <Link
                   to="/register"
-                  className="inline-flex items-center justify-center gap-2 text-indigo-600 hover:text-indigo-700 font-semibold"
+                  className="inline-flex items-center justify-center gap-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-semibold"
                 >
                   <ArrowRight className="w-5 h-5 rotate-180" />
                   Try Registering Again
                 </Link>
-                <div className="text-sm text-gray-500">
+                <div className="text-sm text-gray-500 dark:text-gray-400">
                   Or contact{' '}
-                  <a href="mailto:yopeman318@gmail.com" className="text-indigo-600 hover:text-indigo-700">
+                  <a href="mailto:yopeman318@gmail.com" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300">
                     support
                   </a>
                   {' '}for assistance
@@ -138,10 +142,10 @@ function VerifyEmailPage() {
             </div>
           )}
 
-          <div className="mt-8 pt-6 border-t border-gray-200">
+          <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
             <Link
               to="/"
-              className="flex items-center justify-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              className="flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
               <ArrowRight className="w-4 h-4 rotate-180" />
               Back to Home
