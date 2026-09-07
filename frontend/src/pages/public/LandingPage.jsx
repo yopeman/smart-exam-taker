@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import {
   CheckCircle,
   Clock,
@@ -12,33 +13,71 @@ import {
   Menu,
   X as CloseIcon,
 } from 'lucide-react';
+import ThemeToggle from '../../components/ThemeToggle';
 
 function LandingPage() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
   return (
-    <div className="min-h-screen bg-white text-gray-900 scroll-smooth">
+    <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white scroll-smooth">
       {/* Sticky Navigation */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700">
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <a href="#" className="text-xl font-bold text-indigo-600">
+          <a href="#" className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
             Smart Exam Taker
           </a>
           <div className="hidden md:flex items-center gap-8">
-            <a href="#problem" className="hover:text-indigo-600 transition-colors">Problem</a>
-            <a href="#solution" className="hover:text-indigo-600 transition-colors">Solution</a>
-            <a href="#how-it-works" className="hover:text-indigo-600 transition-colors">How It Works</a>
-            <a href="#roi" className="hover:text-indigo-600 transition-colors">ROI</a>
-            <a href="#register" className="hover:text-indigo-600 transition-colors">Get Started</a>
+            <a href="#problem" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Problem</a>
+            <a href="#solution" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Solution</a>
+            <a href="#how-it-works" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">How It Works</a>
+            <a href="#roi" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">ROI</a>
+            <a href="#register" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Get Started</a>
           </div>
-          <Link
-            to="/login"
-            className="hidden md:inline-flex items-center gap-2 text-indigo-600 border border-indigo-200 hover:bg-indigo-50 px-4 py-2 rounded-full text-sm font-medium transition-colors"
+          <div className="hidden md:flex items-center gap-3">
+            <Link
+              to="/register"
+              className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 px-4 py-2 rounded-full text-sm font-medium transition-colors"
+            >
+              Register
+            </Link>
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 px-4 py-2 rounded-full text-sm font-medium transition-colors"
+            >
+              Login
+            </Link>
+            <ThemeToggle />
+          </div>
+          <button 
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
-            Login
-          </Link>
-          <button className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
-            <Menu className="w-6 h-6" />
+            {mobileMenuOpen ? <CloseIcon className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </nav>
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-4">
+            <div className="flex flex-col gap-4">
+              <a href="#problem" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" onClick={() => setMobileMenuOpen(false)}>Problem</a>
+              <a href="#solution" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" onClick={() => setMobileMenuOpen(false)}>Solution</a>
+              <a href="#how-it-works" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" onClick={() => setMobileMenuOpen(false)}>How It Works</a>
+              <a href="#roi" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" onClick={() => setMobileMenuOpen(false)}>ROI</a>
+              <a href="#register" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" onClick={() => setMobileMenuOpen(false)}>Get Started</a>
+              <div className="flex flex-col gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <Link to="/register" className="inline-flex items-center justify-center gap-2 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 px-4 py-2 rounded-full text-sm font-medium transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                  Register
+                </Link>
+                <Link to="/login" className="inline-flex items-center justify-center gap-2 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 px-4 py-2 rounded-full text-sm font-medium transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                  Login
+                </Link>
+                <div className="flex justify-center">
+                  <ThemeToggle />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Hero Section */}
@@ -70,13 +109,13 @@ function LandingPage() {
       </section>
 
       {/* Problem Section */}
-      <section id="problem" className="py-20 md:py-28 bg-white">
+      <section id="problem" className="py-20 md:py-28 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
               The Hidden Cost of Traditional Exams
             </h2>
-            <p className="text-xl text-gray-600">
+            <p className="text-xl text-gray-600 dark:text-gray-300">
               Every semester, your institution loses thousands of hours on repetitive, manual exam tasks.
             </p>
           </div>
@@ -92,25 +131,25 @@ function LandingPage() {
             ].map((item, index) => (
               <div
                 key={index}
-                className="group bg-red-50 border border-red-100 rounded-2xl p-8 transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+                className="group bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-2xl p-8 transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
               >
-                <div className="w-14 h-14 rounded-lg bg-red-100 flex items-center justify-center mb-6 group-hover:bg-red-200 transition-colors">
-                  <item.icon className="w-7 h-7 text-red-500" />
+                <div className="w-14 h-14 rounded-lg bg-red-100 dark:bg-red-800/30 flex items-center justify-center mb-6 group-hover:bg-red-200 dark:group-hover:bg-red-800/50 transition-colors">
+                  <item.icon className="w-7 h-7 text-red-500 dark:text-red-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">{item.title}</h3>
-                <p className="text-gray-600">{item.desc}</p>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{item.title}</h3>
+                <p className="text-gray-600 dark:text-gray-300">{item.desc}</p>
               </div>
             ))}
           </div>
 
-          <div className="bg-gray-50 rounded-2xl p-8 md:p-12 shadow-sm">
-            <h3 className="text-2xl font-bold text-gray-900 mb-8 text-center">The Reality Schools Face Today</h3>
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-8 md:p-12 shadow-sm">
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-8 text-center">The Reality Schools Face Today</h3>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[600px]">
                 <thead>
-                  <tr className="border-b-2 border-gray-200">
-                    <th className="text-left py-4 px-4 text-gray-700 font-semibold">Task</th>
-                    <th className="text-right py-4 px-4 text-gray-700 font-semibold">Current Effort (per exam)</th>
+                  <tr className="border-b-2 border-gray-200 dark:border-gray-700">
+                    <th className="text-left py-4 px-4 text-gray-700 dark:text-gray-300 font-semibold">Task</th>
+                    <th className="text-right py-4 px-4 text-gray-700 dark:text-gray-300 font-semibold">Current Effort (per exam)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -121,19 +160,19 @@ function LandingPage() {
                     ['Short answer / essay grading', '5–10 hours'],
                     ['Result calculation & report generation', '2–3 hours'],
                   ].map((row, index) => (
-                    <tr key={index} className="border-b border-gray-100 hover:bg-gray-100 transition-colors">
-                      <td className="py-4 px-4 text-gray-700">{row[0]}</td>
-                      <td className="py-4 px-4 text-right text-gray-700 font-medium">{row[1]}</td>
+                    <tr key={index} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                      <td className="py-4 px-4 text-gray-700 dark:text-gray-300">{row[0]}</td>
+                      <td className="py-4 px-4 text-right text-gray-700 dark:text-gray-300 font-medium">{row[1]}</td>
                     </tr>
                   ))}
-                  <tr className="bg-indigo-50">
-                    <td className="py-4 px-4 text-indigo-900 font-bold">Total instructor time per exam</td>
-                    <td className="py-4 px-4 text-right text-indigo-900 font-bold">12–24 hours</td>
+                  <tr className="bg-indigo-50 dark:bg-indigo-900/30">
+                    <td className="py-4 px-4 text-indigo-900 dark:text-indigo-300 font-bold">Total instructor time per exam</td>
+                    <td className="py-4 px-4 text-right text-indigo-900 dark:text-indigo-300 font-bold">12–24 hours</td>
                   </tr>
                 </tbody>
               </table>
             </div>
-            <p className="text-center mt-8 text-gray-600 italic max-w-3xl mx-auto">
+            <p className="text-center mt-8 text-gray-600 dark:text-gray-400 italic max-w-3xl mx-auto">
               Multiply this by the number of exams per semester, per instructor. Your faculty are spending more time on administrative work than on teaching.
             </p>
           </div>
@@ -141,13 +180,13 @@ function LandingPage() {
       </section>
 
       {/* Solution Section */}
-      <section id="solution" className="py-20 md:py-28 bg-gradient-to-b from-indigo-50/80 to-white">
+      <section id="solution" className="py-20 md:py-28 bg-gradient-to-b from-indigo-50/80 dark:from-indigo-900/20 to-white dark:to-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
               Introducing Smart Exam Taker
             </h2>
-            <p className="text-xl text-gray-600">
+            <p className="text-xl text-gray-600 dark:text-gray-300">
               An AI-assisted digital examination platform designed for universities, colleges, and schools.
             </p>
           </div>
@@ -163,13 +202,13 @@ function LandingPage() {
             ].map((item, index) => (
               <div
                 key={index}
-                className="group bg-white border border-gray-200 rounded-2xl p-8 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-indigo-200"
+                className="group bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-8 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-indigo-200 dark:hover:border-indigo-700"
               >
-                <div className="w-14 h-14 rounded-lg bg-indigo-100 flex items-center justify-center mb-6 group-hover:bg-indigo-200 transition-colors">
-                  <item.icon className="w-7 h-7 text-indigo-600" />
+                <div className="w-14 h-14 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mb-6 group-hover:bg-indigo-200 dark:group-hover:bg-indigo-900/50 transition-colors">
+                  <item.icon className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">{item.title}</h3>
-                <p className="text-gray-600">{item.desc}</p>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{item.title}</h3>
+                <p className="text-gray-600 dark:text-gray-300">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -177,17 +216,17 @@ function LandingPage() {
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="py-20 md:py-28 bg-white">
+      <section id="how-it-works" className="py-20 md:py-28 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
               How It Works – A Simple 4-Step Process
             </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative">
             {/* Optional connecting line (hidden on mobile) */}
-            <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-0.5 bg-indigo-100 -z-10"></div>
+            <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-0.5 bg-indigo-100 dark:bg-indigo-800 -z-10"></div>
             {[
               { step: '1', title: 'Upload Document', desc: 'Upload exam document (PDF, Word, etc.)' },
               { step: '2', title: 'AI Processing', desc: 'AI extracts and structures questions into digital format' },
@@ -198,11 +237,11 @@ function LandingPage() {
                 <div className="relative w-16 h-16 bg-indigo-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4 shadow-lg group-hover:scale-105 transition-transform">
                   {item.step}
                   {index < 3 && (
-                    <div className="hidden lg:block absolute top-1/2 left-full w-8 h-0.5 bg-indigo-200"></div>
+                    <div className="hidden lg:block absolute top-1/2 left-full w-8 h-0.5 bg-indigo-200 dark:bg-indigo-700"></div>
                   )}
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">{item.title}</h3>
-                <p className="text-gray-600">{item.desc}</p>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{item.title}</h3>
+                <p className="text-gray-600 dark:text-gray-300">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -210,55 +249,55 @@ function LandingPage() {
       </section>
 
       {/* ROI Section */}
-      <section id="roi" className="py-20 md:py-28 bg-gradient-to-br from-green-50 to-emerald-50">
+      <section id="roi" className="py-20 md:py-28 bg-gradient-to-br from-green-50 dark:from-green-900/20 to-emerald-50 dark:to-emerald-900/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
               Real-World ROI Example
             </h2>
-            <p className="text-xl text-gray-600">See the savings for yourself</p>
+            <p className="text-xl text-gray-600 dark:text-gray-300">See the savings for yourself</p>
           </div>
 
-          <div className="bg-white rounded-2xl p-8 md:p-12 shadow-xl">
-            <p className="text-lg text-gray-700 mb-8">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 md:p-12 shadow-xl">
+            <p className="text-lg text-gray-700 dark:text-gray-300 mb-8">
               <strong>Scenario:</strong> A department with 10 instructors, each conducting 3 exams per semester.
             </p>
 
             <div className="grid md:grid-cols-2 gap-8">
-              <div className="bg-red-50 rounded-xl p-8 border border-red-100">
-                <h3 className="text-xl font-semibold text-red-800 mb-6">Current Manual Process</h3>
+              <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-8 border border-red-100 dark:border-red-800">
+                <h3 className="text-xl font-semibold text-red-800 dark:text-red-300 mb-6">Current Manual Process</h3>
                 <ul className="space-y-4">
                   <li className="flex items-start gap-3">
-                    <X className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-gray-700">~15 hours per exam × 30 exams = <strong>450 hours/semester</strong></span>
+                    <X className="w-5 h-5 text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-gray-700 dark:text-gray-300">~15 hours per exam × 30 exams = <strong>450 hours/semester</strong></span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <X className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-gray-700">Paper & printing costs: <strong>5,000 ETB – 10,000 ETB per semester</strong></span>
+                    <X className="w-5 h-5 text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-gray-700 dark:text-gray-300">Paper & printing costs: <strong>5,000 ETB – 10,000 ETB per semester</strong></span>
                   </li>
                 </ul>
               </div>
 
-              <div className="bg-green-50 rounded-xl p-8 border border-green-100">
-                <h3 className="text-xl font-semibold text-green-800 mb-6">With Smart Exam Taker</h3>
+              <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-8 border border-green-100 dark:border-green-800">
+                <h3 className="text-xl font-semibold text-green-800 dark:text-green-300 mb-6">With Smart Exam Taker</h3>
                 <ul className="space-y-4">
                   <li className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-gray-700">~2 hours per exam × 30 exams = <strong>60 hours/semester</strong></span>
+                    <Check className="w-5 h-5 text-green-500 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-gray-700 dark:text-gray-300">~2 hours per exam × 30 exams = <strong>60 hours/semester</strong></span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-gray-700">Time saved: <strong>390 hours</strong> (9.75 weeks of full-time work)</span>
+                    <Check className="w-5 h-5 text-green-500 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-gray-700 dark:text-gray-300">Time saved: <strong>390 hours</strong> (9.75 weeks of full-time work)</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-gray-700">Paper & printing savings: <strong>5,000 ETB – 10,000 ETB per semester</strong></span>
+                    <Check className="w-5 h-5 text-green-500 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-gray-700 dark:text-gray-300">Paper & printing savings: <strong>5,000 ETB – 10,000 ETB per semester</strong></span>
                   </li>
                 </ul>
               </div>
             </div>
 
-            <p className="text-center mt-10 text-lg text-gray-700 font-semibold">
+            <p className="text-center mt-10 text-lg text-gray-700 dark:text-gray-300 font-semibold">
               Even at a conservative hourly rate, the system pays for itself within the first semester.
             </p>
           </div>
@@ -266,18 +305,18 @@ function LandingPage() {
       </section>
 
       {/* CTA / Registration Section */}
-      <section id="register" className="py-20 md:py-28 bg-white">
+      <section id="register" className="py-20 md:py-28 bg-white dark:bg-gray-900">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
             Get Started with Smart Exam Taker
           </h2>
-          <p className="text-lg text-gray-600 mb-8">
+          <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">
             Already have an account?{' '}
-            <Link to="/login" className="text-indigo-600 hover:underline font-medium">
+            <Link to="/login" className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
               Login
             </Link>
             . New to Smart Exam Taker?{' '}
-            <Link to="/register" className="text-indigo-600 hover:underline font-medium">
+            <Link to="/register" className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
               Register
             </Link>{' '}
             to continue with us.
@@ -293,40 +332,40 @@ function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
+      <footer className="bg-gray-900 dark:bg-black text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h3 className="text-2xl font-bold mb-4">Smart Exam Taker</h3>
-          <p className="text-gray-400 mb-6">AI-Assisted Digital Examination Platform</p>
+          <p className="text-gray-400 dark:text-gray-500 mb-6">AI-Assisted Digital Examination Platform</p>
 
-          <div className="flex flex-col md:flex-row justify-center items-center gap-6 mb-8 text-gray-300">
+          <div className="flex flex-col md:flex-row justify-center items-center gap-6 mb-8 text-gray-300 dark:text-gray-400">
             <div className="flex items-center gap-2">
-              <span className="text-gray-400">Phone:</span>
+              <span className="text-gray-400 dark:text-gray-500">Phone:</span>
               <span>
-                <a href="tel:+251924606710" className="hover:text-indigo-400 transition-colors">+251924606710</a>{' '}
+                <a href="tel:+251924606710" className="hover:text-indigo-400 dark:hover:text-indigo-300 transition-colors">+251924606710</a>{' '}
                 /{' '}
-                <a href="tel:+251922583488" className="hover:text-indigo-400 transition-colors">+251922583488</a>
+                <a href="tel:+251922583488" className="hover:text-indigo-400 dark:hover:text-indigo-300 transition-colors">+251922583488</a>
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-gray-400">Email:</span>
-              <a href="mailto:yopeman318@gmail.com" className="hover:text-indigo-400 transition-colors">
+              <span className="text-gray-400 dark:text-gray-500">Email:</span>
+              <a href="mailto:yopeman318@gmail.com" className="hover:text-indigo-400 dark:hover:text-indigo-300 transition-colors">
                 yopeman318@gmail.com
               </a>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-gray-400">Telegram:</span>
+              <span className="text-gray-400 dark:text-gray-500">Telegram:</span>
               <a
                 href="https://t.me/yope_man"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:text-indigo-400 transition-colors"
+                className="hover:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
               >
                 @yope_man
               </a>
             </div>
           </div>
 
-          <p className="text-gray-500 text-sm">
+          <p className="text-gray-500 dark:text-gray-600 text-sm">
             © {new Date().getFullYear()} Smart Exam Taker. All rights reserved.
           </p>
         </div>
