@@ -318,7 +318,7 @@ function LandingPage() {
       </section>
 
       {/* Registration Form Section */}
-      <section id="register" className="py-20 bg-white">
+      {/* <section id="register" className="py-20 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
@@ -513,7 +513,33 @@ function LandingPage() {
             )}
           </div>
         </div>
+      </section> */}
+
+
+      {/* Login/Registration Link Section */}
+      <section id="register" className="py-20 bg-white">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+              Get Started with Smart Exam Taker
+            </h2>
+            <p className="text-lg text-gray-600 mb-8">
+              Already have an account? <Link to="/login" className="text-indigo-600 hover:underline">Login</Link>.
+              New to Smart Exam Taker? <Link to="/register" className="text-indigo-600 hover:underline">Register</Link> to continue with us.
+            </p>
+          </div>
+
+          <button
+            onClick={() => {
+              window.location.href = '/register'
+            }}
+            className="w-full bg-indigo-600 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            Continue With Us
+          </button>
+        </div>
       </section>
+
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12">
@@ -537,12 +563,6 @@ function LandingPage() {
               <span className="text-gray-400">Telegram:</span>
               <a href="https://t.me/yope_man" target="_blank" rel="noopener noreferrer" className="hover:text-indigo-400 transition-colors">@yope_man</a>
             </div>
-          </div>
-          
-          <div className="mb-6">
-            <Link to="/login" className="text-indigo-400 hover:text-indigo-300 transition-colors text-sm">
-              Login
-            </Link>
           </div>
           
           <p className="text-gray-500 text-sm">
