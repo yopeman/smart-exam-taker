@@ -8,10 +8,12 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models import User
 from app.schemas.user import (
+    ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
     MessageResponse,
     RegisterRequest,
+    ResendVerificationRequest,
     ResetPasswordRequest,
     TokenResponse,
     UpdateProfileRequest,
@@ -40,6 +42,13 @@ def verify_email(
 ):
     status_text, detail = auth_controller.verify_email(token, db)
     return _form_redirect(status_text, detail)
+
+
+@router.post("/resend-verification", response_model=MessageResponse)
+def resend_verification_email(
+    payload: ResendVerificationRequest, db: Session = Depends(get_db)
+):
+    return auth_controller.resend_verification_email(payload, db)
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -77,3 +86,12 @@ def delete_account(
     db: Session = Depends(get_db),
 ):
     return auth_controller.delete_account(current_user, db)
+
+
+@router.post("/change-password", response_model=MessageResponse)
+def change_password(
+    payload: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return auth_controller.change_password(payload, current_user, db)

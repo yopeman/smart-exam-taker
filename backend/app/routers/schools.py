@@ -10,7 +10,6 @@ from app.models import User
 from app.schemas.school import (
     MessageResponse,
     SchoolResponse,
-    SchoolUpdateRequest,
 )
 
 router = APIRouter(prefix="/schools", tags=["schools"])
@@ -103,11 +102,26 @@ def get_school(
 @router.patch("/{school_id}", response_model=SchoolResponse)
 def update_school(
     school_id: str,
-    payload: SchoolUpdateRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    name: str | None = Form(default=None, min_length=1, max_length=150),
+    location: str | None = Form(default=None, max_length=255),
+    logo_url: str | None = Form(default=None),
+    primary_color: str | None = Form(default=None, max_length=7),
+    secondary_color: str | None = Form(default=None, max_length=7),
+    logo: UploadFile | None = File(default=None),
 ):
-    return schools_controller.update_school(school_id, payload, current_user, db)
+    resolved_logo = _resolve_logo_url(logo_url, logo)
+    return schools_controller.update_school(
+        school_id,
+        current_user,
+        db,
+        name,
+        location,
+        resolved_logo,
+        primary_color,
+        secondary_color,
+    )
 
 
 @router.delete("/{school_id}", response_model=MessageResponse)

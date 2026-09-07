@@ -8,7 +8,6 @@ from app.models import InstructorInvitation, InvitationStatus, School, User
 from app.schemas.school import (
     MessageResponse,
     SchoolResponse,
-    SchoolUpdateRequest,
 )
 
 
@@ -76,22 +75,26 @@ def get_school(school_id: str, user: User, db: Session) -> School:
 
 def update_school(
     school_id: str,
-    payload: SchoolUpdateRequest,
     user: User,
     db: Session,
+    name: str | None = None,
+    location: str | None = None,
+    logo_url: str | None = None,
+    primary_color: str | None = None,
+    secondary_color: str | None = None,
 ) -> School:
     school = get_owned_school(school_id, user, db)
 
-    if payload.name is not None:
-        school.name = payload.name
-    if payload.location is not None:
-        school.location = payload.location
-    if payload.logo_url is not None:
-        school.logo_url = str(payload.logo_url)
-    if payload.primary_color is not None:
-        school.primary_color = payload.primary_color
-    if payload.secondary_color is not None:
-        school.secondary_color = payload.secondary_color
+    if name is not None:
+        school.name = name
+    if location is not None:
+        school.location = location
+    if logo_url is not None:
+        school.logo_url = logo_url
+    if primary_color is not None:
+        school.primary_color = primary_color
+    if secondary_color is not None:
+        school.secondary_color = secondary_color
 
     db.add(school)
     db.commit()

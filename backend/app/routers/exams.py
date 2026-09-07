@@ -33,6 +33,8 @@ def create_exam(
     duration_minutes: int = Form(default=60, ge=1),
     max_students: int | None = Form(default=None, ge=0),
     max_reserved_students: int | None = Form(default=None, ge=0),
+    document_content: str | None = Form(default=None),
+    questions: str | None = Form(default=None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -55,6 +57,8 @@ def create_exam(
         duration_minutes,
         max_students,
         max_reserved_students,
+        document_content,
+        questions,
     )
 
 
@@ -100,6 +104,24 @@ def available_exams(
 ):
     require_student(current_user)
     return exams_controller.list_available_exams_for_student(current_user, db)
+
+
+@router.get("/code/{code}", response_model=StudentExamResponse)
+def get_exam_by_code(
+    code: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return exams_controller.get_student_exam_by_code(code, current_user, db)
+
+
+@router.get("/student/{exam_id}", response_model=StudentExamResponse)
+def get_student_exam(
+    exam_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return exams_controller.get_student_exam_by_id(exam_id, current_user, db)
 
 
 @router.get("/{exam_id}", response_model=ExamResponse)

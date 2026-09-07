@@ -67,13 +67,13 @@ def _process_payload(payload: bytes) -> None:
 
         try:
             text = document.extract_document_text(filename, content)
-            questions = ai.generate_questions(text)
+            total = ai.generate_questions(text)
         except Exception as exc:  # pragma: no cover - defensive
             logger.exception("Failed to process exam %s: %s", exam_id, exc)
             return
 
         exam.document_content = text
-        exam.questions = [q.model_dump() for q in questions]
+        exam.questions = total.model_dump()
         exam.status = ExamStatus.draft
         db.add(exam)
         db.commit()

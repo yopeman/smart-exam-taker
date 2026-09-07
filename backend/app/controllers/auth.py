@@ -14,10 +14,12 @@ from app.core.security import (
 )
 from app.models import User, UserRole
 from app.schemas.user import (
+    ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
     MessageResponse,
     RegisterRequest,
+    ResendVerificationRequest,
     ResetPasswordRequest,
     TokenResponse,
     UpdateProfileRequest,
@@ -71,6 +73,29 @@ def verify_email(token: str, db: Session) -> tuple[str, str]:
     db.commit()
 
     return ("success", "Email verified successfully")
+
+
+def resend_verification_email(payload: ResendVerificationRequest, db: Session) -> MessageResponse:
+    user = db.scalar(select(User).where(User.email == payload.email.lower()))
+    
+    if user is None or user.is_deleted:
+        # Always return the same message to avoid user enumeration
+        return MessageResponse(
+            message="If an account exists for that email, a verification link has been sent"
+        )
+    
+    if user.is_verified:
+        return MessageResponse(
+            message="This email is already verified"
+        )
+    
+    # Generate new verification token and send email
+    token = create_verify_token(user.id)
+    email.send_verification_email(user.email, token, name=user.name)
+    
+    return MessageResponse(
+        message="A new verification link has been sent to your email"
+    )
 
 
 def login(payload: LoginRequest, db: Session) -> TokenResponse:
@@ -157,3 +182,21 @@ def delete_account(current_user: User, db: Session) -> MessageResponse:
     db.commit()
 
     return MessageResponse(message="Your account has been deleted")
+
+
+def change_password(
+    payload: ChangePasswordRequest,
+    current_user: User,
+    db: Session,
+) -> MessageResponse:
+    if not verify_password(payload.current_password, current_user.password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect",
+        )
+
+    current_user.password = hash_password(payload.new_password)
+    db.add(current_user)
+    db.commit()
+
+    return MessageResponse(message="Password changed successfully")

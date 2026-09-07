@@ -4,6 +4,8 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models import AttemptStatus
+from app.schemas.exam import LimitedSchool
+from app.schemas.question import StudentAttempt, TotalQuestions
 
 
 class StartAttemptRequest(BaseModel):
@@ -18,7 +20,32 @@ class StartAttemptRequest(BaseModel):
 
 
 class SubmitAttemptRequest(BaseModel):
+    """Student answers. Accepts either the canonical `attempts` list (each with a
+    `question_id` and a unique `id`) or a flat `answers` dict keyed by question id.
+    """
+
+    attempts: list[StudentAttempt] | None = None
     answers: dict[str, Any] = Field(default_factory=dict)
+
+    def answer_map(self) -> dict[str, Any]:
+        """Collapse `attempts` into a dict keyed by question_id."""
+        if self.attempts:
+            return {a.question_id: a.attempt for a in self.attempts}
+        return self.answers
+
+
+class UpdateAttemptScoresRequest(BaseModel):
+    grading_details: list[Any] | None = Field(default=None)
+    objective_score: float | None = Field(default=None, ge=0)
+    ai_score: float | None = Field(default=None, ge=0)
+    total_score: float | None = Field(default=None, ge=0)
+
+
+class AttemptExam(BaseModel):
+    id: str
+    title: str
+    code: str
+    questions: TotalQuestions | None = None
 
 
 class AttemptResponse(BaseModel):
@@ -45,6 +72,8 @@ class AttemptResponse(BaseModel):
     submitted_at: datetime | None
     graded_at: datetime | None
     status: AttemptStatus
+    exam: AttemptExam | None = None
+    school: LimitedSchool | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -53,4 +82,5 @@ __all__ = [
     "StartAttemptRequest",
     "SubmitAttemptRequest",
     "AttemptResponse",
+    "AttemptExam",
 ]

@@ -1,9 +1,10 @@
+import json
 import uuid
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
 from app.models import Exam, ExamStatus, InstructorInvitation, InvitationStatus, School, User, UserRole
@@ -87,7 +88,48 @@ def require_exam_manager(exam: Exam, user: User, db: Session) -> None:
 
 
 def generate_code() -> str:
-    return "EXM-" + uuid.uuid4().hex[:8].upper()
+    return "EXAM-" + uuid.uuid4().hex[:8].upper()
+
+
+def serialize_exam(exam: Exam, db: Session) -> ExamResponse:
+    school = db.get(School, exam.school_id)
+    return ExamResponse(
+        id=exam.id,
+        school_id=exam.school_id,
+        instructor_id=exam.instructor_id,
+        code=exam.code,
+        title=exam.title,
+        description=exam.description,
+        department=exam.department,
+        year_of_study=exam.year_of_study,
+        semester=exam.semester,
+        section=exam.section,
+        document_content=exam.document_content,
+        questions=exam.questions,
+        duration_minutes=exam.duration_minutes,
+        max_students=exam.max_students,
+        max_reserved_students=exam.max_reserved_students,
+        status=exam.status,
+        started_by=exam.started_by,
+        scheduled_at=exam.scheduled_at,
+        started_at=exam.started_at,
+        completed_at=exam.completed_at,
+        cancelled_at=exam.cancelled_at,
+        school=(
+            {
+                "id": school.id,
+                "name": school.name,
+                "logo_url": school.logo_url,
+                "location": school.location,
+                "primary_color": school.primary_color,
+                "secondary_color": school.secondary_color,
+            }
+            if school is not None and not school.is_deleted
+            else None
+        ),
+        created_at=exam.created_at,
+        updated_at=exam.updated_at,
+    )
 
 
 def create_exam(
@@ -105,15 +147,35 @@ def create_exam(
     duration_minutes: int,
     max_students: int | None,
     max_reserved_students: int | None,
+    document_content: str | None = None,
+    questions: str | None = None,
 ) -> Exam:
     school = get_school(school_id, user, db)
 
-    if filename is None:
+    if filename is None and not document_content and not questions:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A document is required to create an exam",
+            detail="A document, document content, or questions are required to create an exam",
         )
 
+    parsed_questions: list | None = None
+    if questions:
+        try:
+            raw = json.loads(questions)
+        except json.JSONDecodeError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="questions must be valid JSON",
+            )
+        try:
+            parsed_questions = questions_adapter.validate_python(raw).model_dump()
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid questions payload: {exc}",
+            )
+
+    has_file = filename is not None
     exam = Exam(
         school_id=school.id,
         instructor_id=user.id,
@@ -127,13 +189,20 @@ def create_exam(
         duration_minutes=duration_minutes,
         max_students=max_students,
         max_reserved_students=max_reserved_students,
-        status=ExamStatus.processing,
+        status=ExamStatus.processing if has_file else ExamStatus.draft,
     )
+
+    if document_content is not None:
+        exam.document_content = document_content
+    if parsed_questions is not None:
+        exam.questions = parsed_questions
+
     db.add(exam)
     db.commit()
     db.refresh(exam)
 
-    enqueue_exam_processing(exam.id, filename, content)
+    if has_file:
+        enqueue_exam_processing(exam.id, filename, content)
     return exam
 
 
@@ -160,15 +229,23 @@ def my_exams(user: User, db: Session) -> list:
 
 def list_reachable_exams(user: User, db: Session) -> list:
     owned_ids, shared_ids = get_reachable_school_ids(user, db)
-    school_ids = owned_ids | shared_ids
-    if not school_ids:
+    if not owned_ids and not shared_ids:
         return []
+
+    conditions = []
+    if owned_ids:
+        conditions.append(Exam.school_id.in_(owned_ids))
+    if shared_ids:
+        conditions.append(
+            and_(Exam.school_id.in_(shared_ids), Exam.instructor_id == user.id)
+        )
+
     stmt = (
         select(Exam)
-        .where(Exam.school_id.in_(school_ids), Exam.deleted_at.is_(None))
+        .where(or_(*conditions), Exam.deleted_at.is_(None))
         .order_by(Exam.created_at.desc())
     )
-    return list(db.scalars(stmt))
+    return [serialize_exam(e, db) for e in db.scalars(stmt)]
 
 
 def list_shared_school_exams_by_me(user: User, db: Session) -> list:
@@ -193,6 +270,134 @@ def get_exam_detail(exam_id: str, user: User, db: Session) -> Exam:
     return exam
 
 
+def get_student_exam_by_code(code: str, user: User, db: Session) -> StudentExamResponse:
+    """Fetch an exam by code for a student.
+
+    Only exams in submitted, scheduled, or started status are exposed. Like all
+    student-facing responses, document content and questions are never leaked.
+    """
+    if user.role != UserRole.student:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only students can access exams by code",
+        )
+
+    exam = db.scalar(
+        select(Exam).where(
+            Exam.code == code,
+            Exam.deleted_at.is_(None),
+        )
+    )
+    if exam is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Exam not found"
+        )
+
+    if exam.status not in (
+        ExamStatus.submitted,
+        ExamStatus.scheduled,
+        ExamStatus.started,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This exam is not available to take",
+        )
+
+    instructor = db.get(User, exam.instructor_id)
+    school = db.get(School, exam.school_id)
+
+    return StudentExamResponse(
+        id=exam.id,
+        code=exam.code,
+        title=exam.title,
+        description=exam.description,
+        department=exam.department,
+        year_of_study=exam.year_of_study,
+        semester=exam.semester,
+        section=exam.section,
+        status=exam.status,
+        duration_minutes=exam.duration_minutes,
+        document_content=None,
+        questions=exam.questions,
+        instructor=(
+            {"id": instructor.id, "name": instructor.name}
+            if instructor is not None
+            else None
+        ),
+        school=(
+            {"id": school.id, "name": school.name, "logo_url": school.logo_url}
+            if school is not None
+            else None
+        ),
+        created_at=exam.created_at,
+        updated_at=exam.updated_at,
+    )
+
+
+def get_student_exam_by_id(exam_id: str, user: User, db: Session) -> StudentExamResponse:
+    """Fetch an exam by ID for a student.
+
+    Only exams in submitted, scheduled, or started status are exposed. Like all
+    student-facing responses, document content and questions are never leaked.
+    """
+    if user.role != UserRole.student:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only students can access exams by ID",
+        )
+
+    exam = db.scalar(
+        select(Exam).where(
+            Exam.id == exam_id,
+            Exam.deleted_at.is_(None),
+        )
+    )
+    if exam is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Exam not found"
+        )
+
+    if exam.status not in (
+        ExamStatus.submitted,
+        ExamStatus.scheduled,
+        ExamStatus.started,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This exam is not available to take",
+        )
+
+    instructor = db.get(User, exam.instructor_id)
+    school = db.get(School, exam.school_id)
+
+    return StudentExamResponse(
+        id=exam.id,
+        code=exam.code,
+        title=exam.title,
+        description=exam.description,
+        department=exam.department,
+        year_of_study=exam.year_of_study,
+        semester=exam.semester,
+        section=exam.section,
+        status=exam.status,
+        duration_minutes=exam.duration_minutes,
+        document_content=None,
+        questions=exam.questions,
+        instructor=(
+            {"id": instructor.id, "name": instructor.name}
+            if instructor is not None
+            else None
+        ),
+        school=(
+            {"id": school.id, "name": school.name, "logo_url": school.logo_url}
+            if school is not None
+            else None
+        ),
+        created_at=exam.created_at,
+        updated_at=exam.updated_at,
+    )
+
+
 def update_exam(
     exam_id: str,
     payload: ExamUpdateRequest,
@@ -207,6 +412,10 @@ def update_exam(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Only draft or submitted exams can be edited",
         )
+
+    if payload.school_id is not None and payload.school_id != exam.school_id:
+        get_school(payload.school_id, user, db)
+        exam.school_id = payload.school_id
 
     if payload.title is not None:
         exam.title = payload.title
@@ -228,9 +437,9 @@ def update_exam(
         exam.max_reserved_students = payload.max_reserved_students
     if payload.questions is not None:
         try:
-            exam.questions = [
-                q.model_dump() for q in questions_adapter.validate_python(payload.questions)
-            ]
+            exam.questions = questions_adapter.validate_python(
+                payload.questions
+            ).model_dump()
         except Exception as exc:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
