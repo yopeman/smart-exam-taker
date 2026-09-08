@@ -1,5 +1,5 @@
 export const API_CONFIG = {
-  BASE_URL: __DEV__ ? 'http://localhost:8000/api/v1' : 'https://smart-exam-taker-backend-by-yopeman-318.loca.lt/api/v1',
+  BASE_URL: __DEV__ ? 'http://10.201.99.229:8000/api/v1' : 'https://smart-exam-taker-backend-by-yopeman-318.loca.lt/api/v1',
   TIMEOUT: 30000,
 };
 

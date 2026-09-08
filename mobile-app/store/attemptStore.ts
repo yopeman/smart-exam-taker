@@ -130,8 +130,10 @@ export const useAttemptStore = create<AttemptState & AttemptActions>()(
     {
       name: 'attempt-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (state) => ({ 
-        currentAttempt: state.currentAttempt 
+      partialize: (state) => ({
+        myAttempts: state.myAttempts,
+        currentAttempt: state.currentAttempt,
+        isOffline: state.isOffline,
       }),
     }
   )

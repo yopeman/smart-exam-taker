@@ -15,6 +15,7 @@ import {
 } from '../../../lib/exam-schema';
 import { apiClient } from '../../../lib/api/client';
 import { Modal as UiModal } from '../../../components/ui/Modal';
+import { useExamSecurity } from '../../../hooks/useExamSecurity';
 
 function MCQAnswer({ qn, value, onChange, theme }) {
   const selected: string | null = typeof value === 'string' ? value : null;
@@ -214,6 +215,28 @@ export default function TakeExamScreen() {
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [securityWarning, setSecurityWarning] = useState<string | null>(null);
+
+  const {
+    violations,
+    isSecurityActive,
+    focusLossCountdown,
+    isScreenRecording,
+    isDndEnabled,
+    startSecurity,
+    stopSecurity,
+    clearViolations,
+  } = useExamSecurity({
+    enabled: true,
+    focusLossTimeout: 5,
+    onViolation: (violation) => {
+      setSecurityWarning(violation.message);
+      Alert.alert('Security Violation', violation.message);
+    },
+    onAutoSubmit: () => {
+      handleSubmit();
+    },
+  });
 
   useEffect(() => {
     if (id) {
@@ -293,6 +316,13 @@ export default function TakeExamScreen() {
     }
     return () => clearInterval(interval);
   }, [step, timeLeft]);
+
+  // Cleanup security when leaving exam
+  useEffect(() => {
+    return () => {
+      stopSecurity();
+    };
+  }, [stopSecurity]);
 
   const handleInfoSubmit = async () => {
     const newErrors: Record<string, string> = {};
@@ -375,6 +405,7 @@ export default function TakeExamScreen() {
       const examQs = flattenExamQuestions(currentExam.questions);
       setQuestions(examQs);
       setStep('questions');
+      startSecurity(); // Start security monitoring when exam begins
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to start exam');
       setStep('info');
@@ -393,6 +424,7 @@ export default function TakeExamScreen() {
     if (!currentAttempt) return;
 
     setIsSubmitting(true);
+    stopSecurity(); // Stop security monitoring when exam is submitted
     try {
       await submitAttempt(currentAttempt.id, buildAttemptsPayload(answers) as any);
       setStep('submit');
@@ -563,6 +595,17 @@ export default function TakeExamScreen() {
             Time Remaining: {formatTime(timeLeft)}
           </Text>
         </View>
+
+        {/* Security Status Bar */}
+        {(focusLossCountdown > 0 || violations.length > 0) && (
+          <View style={[styles.securityBar, { backgroundColor: focusLossCountdown > 0 ? theme.colors.error : theme.colors.warning }]}>
+            <Text style={[styles.securityText, { color: '#FFFFFF', fontSize: theme.typography.sizes.sm }]}>
+              {focusLossCountdown > 0 
+                ? `⚠️ Return to app immediately! Auto-submit in ${focusLossCountdown}s`
+                : `⚠️ Security violations detected: ${violations.length}`}
+            </Text>
+          </View>
+        )}
 
         <ScrollView
           style={styles.scrollView}
@@ -830,6 +873,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   timerText: {
+    fontWeight: '600',
+  },
+  securityBar: {
+    padding: 12,
+    alignItems: 'center',
+  },
+  securityText: {
     fontWeight: '600',
   },
   questionCard: {
