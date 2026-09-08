@@ -42,13 +42,18 @@ class ApiClient {
           // Navigate to login would be handled by the auth store
         }
         
-        // Return generic error message for security
-        const genericError = {
-          message: 'An error occurred. Please try again.',
+        // Extract real error message from response
+        const errorMessage = error.response?.data?.detail || 
+                           error.response?.data?.message || 
+                           error.message || 
+                           'An error occurred. Please try again.';
+        
+        const apiError = {
+          message: errorMessage,
           status: error.response?.status || 500,
         };
         
-        return Promise.reject(genericError);
+        return Promise.reject(apiError);
       }
     );
   }
