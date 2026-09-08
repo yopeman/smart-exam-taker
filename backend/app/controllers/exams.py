@@ -7,7 +7,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
-from app.models import Exam, ExamStatus, InstructorInvitation, InvitationStatus, School, User, UserRole
+from app.models import AttemptStatus, Exam, ExamAttempt, ExamStatus, InstructorInvitation, InvitationStatus, School, User, UserRole
 from app.schemas.exam import (
     ExamResponse,
     ExamUpdateRequest,
@@ -303,6 +303,20 @@ def get_student_exam_by_code(code: str, user: User, db: Session) -> StudentExamR
             detail="This exam is not available to take",
         )
 
+    existing_attempt = db.scalar(
+        select(ExamAttempt).where(
+            ExamAttempt.exam_id == exam.id,
+            ExamAttempt.student_id == user.id,
+            ExamAttempt.status != AttemptStatus.in_progress,
+            ExamAttempt.deleted_at.is_(None)
+        )
+    )
+    if existing_attempt is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You have already completed this exam",
+        )
+
     instructor = db.get(User, exam.instructor_id)
     school = db.get(School, exam.school_id)
 
@@ -365,6 +379,20 @@ def get_student_exam_by_id(exam_id: str, user: User, db: Session) -> StudentExam
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="This exam is not available to take",
+        )
+
+    existing_attempt = db.scalar(
+        select(ExamAttempt).where(
+            ExamAttempt.exam_id == exam.id,
+            ExamAttempt.student_id == user.id,
+            ExamAttempt.status != AttemptStatus.in_progress,
+            ExamAttempt.deleted_at.is_(None)
+        )
+    )
+    if existing_attempt is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You have already completed this exam",
         )
 
     instructor = db.get(User, exam.instructor_id)

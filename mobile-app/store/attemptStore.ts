@@ -70,6 +70,7 @@ export const useAttemptStore = create<AttemptState & AttemptActions>()(
             error: error.message || 'Failed to start attempt', 
             isLoading: false 
           });
+          throw error;
         }
       },
 
@@ -90,6 +91,7 @@ export const useAttemptStore = create<AttemptState & AttemptActions>()(
               error: error.message || 'Failed to submit attempt', 
               isLoading: false 
             });
+            throw error;
           }
         }
       },
