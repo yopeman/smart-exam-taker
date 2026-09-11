@@ -229,6 +229,7 @@ export default function TakeExamScreen() {
   const [scenarioImages, setScenarioImages] = useState<Record<string, string>>({});
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
+  const [isPhotoLoading, setIsPhotoLoading] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [securityWarning, setSecurityWarning] = useState<string | null>(null);
   const [fullscreenBlocked, setFullscreenBlocked] = useState(false);
@@ -419,6 +420,7 @@ export default function TakeExamScreen() {
 
     if (!cameraRef.current) return;
 
+    setIsPhotoLoading(true);
     try {
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.5 });
       if (photo?.uri) {
@@ -431,12 +433,16 @@ export default function TakeExamScreen() {
       }
     } catch (err: any) {
       Alert.alert('Error', err?.message || 'Failed to capture photo');
+    } finally {
+      setIsPhotoLoading(false);
     }
   };
 
   const handleRetake = () => {
+    setIsPhotoLoading(true);
     setFaceImage(null);
     setPreview(false);
+    setIsPhotoLoading(false);
   };
 
   const handleConfirmPhoto = async () => {
@@ -612,6 +618,7 @@ export default function TakeExamScreen() {
                 title="Retake"
                 onPress={handleRetake}
                 variant="outline"
+                loading={isPhotoLoading}
                 style={styles.button}
               />
             </>
@@ -620,6 +627,7 @@ export default function TakeExamScreen() {
               <Button
                 title="Take Photo"
                 onPress={handleTakePhoto}
+                loading={isPhotoLoading}
                 style={styles.button}
               />
               <Button
