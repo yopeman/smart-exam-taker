@@ -13,7 +13,7 @@ export const useCameraCapture = () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: 'user',
+          facingMode: { ideal: 'user' },
           width: { ideal: 1280 },
           height: { ideal: 720 },
         },
@@ -21,10 +21,6 @@ export const useCameraCapture = () => {
       });
       streamRef.current = stream;
       setIsReady(true);
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(() => {});
-      }
     } catch (err: any) {
       if (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError') {
         setPermissionDenied(true);
@@ -41,6 +37,13 @@ export const useCameraCapture = () => {
     streamRef.current = null;
     setIsReady(false);
   }, []);
+
+  useEffect(() => {
+    if (isReady && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [isReady]);
 
   useEffect(() => {
     return () => stopCamera();

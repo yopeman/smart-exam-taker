@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, safeStorage, globalShortcut, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, safeStorage, globalShortcut, Menu, session } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -223,8 +223,23 @@ function registerIpcHandlers() {
   );
 }
 
+function setupMediaPermissions() {
+  const ses = session.defaultSession;
+  ses.setPermissionRequestHandler((_webContents, permission, callback, details) => {
+    if (permission === 'media') {
+      const mediaTypes: string[] | undefined = (details as any)?.mediaTypes;
+      const wantsVideo = !mediaTypes || mediaTypes.includes('video');
+      callback(wantsVideo);
+      return;
+    }
+    callback(false);
+  });
+  ses.setPermissionCheckHandler((_webContents, permission) => permission === 'media');
+}
+
 app.whenReady().then(() => {
   defaultAppMenu = Menu.getApplicationMenu();
+  setupMediaPermissions();
   registerIpcHandlers();
   createWindow();
 
