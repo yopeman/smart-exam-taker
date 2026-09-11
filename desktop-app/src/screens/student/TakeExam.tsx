@@ -385,7 +385,7 @@ export default function TakeExam() {
     return (
       <div className="page" style={{ height: '100%' }}>
         {fullscreenBlocked && <FullscreenBlock />}
-        <div className="page__inner" style={{ maxWidth: 640 }}>
+        <div className="page__inner" style={{ maxWidth: 820 }}>
           <div className="page__header">
             <h1 className="page__title">Student Information</h1>
             <p className="page__subtitle">Please provide your details before starting the exam</p>
@@ -414,7 +414,7 @@ export default function TakeExam() {
     return (
       <div className="page" style={{ height: '100%' }}>
         {fullscreenBlocked && <FullscreenBlock />}
-        <div className="page__inner" style={{ maxWidth: 640 }}>
+        <div className="page__inner" style={{ maxWidth: 820 }}>
           <div className="page__header">
             <h1 className="page__title">Face Verification</h1>
             <p className="page__subtitle">Capture your face for identity verification</p>
@@ -477,7 +477,7 @@ export default function TakeExam() {
         )}
 
         <div className="take-exam__content">
-          <div className="page__inner" style={{ maxWidth: 760 }}>
+          <div className="page__inner" style={{ maxWidth: 1080 }}>
             {flatQuestions.length > 0 ? (
               flatQuestions.map((qn, index) => (
                 <div key={qn.id || index}>

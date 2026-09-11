@@ -854,8 +854,8 @@ button {
 
 .submit-row {
   padding: 24px 0 16px;
-  position: sticky;
-  bottom: 0;
+  width: 100%;
+  max-width: 800px;
   background-color: var(--color-background);
   padding-top: 16px;
 }
