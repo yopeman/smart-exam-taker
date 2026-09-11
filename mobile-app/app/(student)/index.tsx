@@ -47,7 +47,7 @@ export default function StudentDashboard() {
     if (exam) {
       router.push({ pathname: '/(student)/exams/[id]', params: { id: exam.id, code } });
     } else {
-      setCodeError('Exam not found or not available');
+      setCodeError(useExamStore.getState().error || 'Exam not found or not available');
     }
   };
 

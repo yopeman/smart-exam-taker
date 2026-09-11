@@ -26,7 +26,7 @@ export default function AttemptDetailModal({
   attemptId,
   onClose,
 }: AttemptDetailModalProps) {
-  const { currentAttempt, fetchAttemptById, isLoading } = useAttemptStore();
+  const { currentAttempt, fetchAttemptById, isLoading, error } = useAttemptStore();
   const { theme } = useTheme();
   const [exporting, setExporting] = useState(false);
 
@@ -176,7 +176,7 @@ export default function AttemptDetailModal({
         <View style={styles.overlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
             <Text style={[styles.errorText, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.md }]}>
-              Attempt not found
+              {error || 'Attempt not found'}
             </Text>
             <Button
               title="Close"

@@ -2,6 +2,52 @@ import axios, { AxiosError, AxiosInstance } from 'axios';
 import { API_CONFIG } from '../../constants/api';
 import { secureStorage } from '../storage/secure-storage';
 
+function extractErrorMessage(error: AxiosError): string {
+  const data: any = error.response?.data;
+
+  if (data !== undefined && data !== null) {
+    if (typeof data.detail === 'string' && data.detail.trim() !== '') {
+      return data.detail;
+    }
+    if (Array.isArray(data.detail)) {
+      const messages = data.detail
+        .map((item: any) => (typeof item?.msg === 'string' ? item.msg : item))
+        .filter((item: any) => item !== undefined && item !== null && String(item).trim() !== '')
+        .map(String);
+      if (messages.length > 0) {
+        return messages.join('\n');
+      }
+    }
+    if (typeof data.message === 'string' && data.message.trim() !== '') {
+      return data.message;
+    }
+    if (typeof data.error === 'string' && data.error.trim() !== '') {
+      return data.error;
+    }
+    if (data.errors && typeof data.errors === 'object') {
+      const messages = Object.values(data.errors)
+        .flat()
+        .filter((item: any) => item !== undefined && item !== null && String(item).trim() !== '')
+        .map(String);
+      if (messages.length > 0) {
+        return messages.join('\n');
+      }
+    }
+    if (typeof data === 'string' && data.trim() !== '') {
+      return data;
+    }
+  }
+
+  if (error.code === 'ECONNABORTED') {
+    return 'The request timed out. Please try again.';
+  }
+  if (!error.response) {
+    return 'Network error. Please check your connection and try again.';
+  }
+
+  return error.message || 'An error occurred. Please try again.';
+}
+
 class ApiClient {
   private client: AxiosInstance;
 
@@ -41,18 +87,12 @@ class ApiClient {
           await secureStorage.clear();
           // Navigate to login would be handled by the auth store
         }
-        
-        // Extract real error message from response
-        const errorMessage = error.response?.data?.detail || 
-                           error.response?.data?.message || 
-                           error.message || 
-                           'An error occurred. Please try again.';
-        
+
         const apiError = {
-          message: errorMessage,
+          message: extractErrorMessage(error),
           status: error.response?.status || 500,
         };
-        
+
         return Promise.reject(apiError);
       }
     );

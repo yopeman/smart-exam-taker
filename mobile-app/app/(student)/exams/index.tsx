@@ -8,7 +8,7 @@ import { Button } from '../../../components/ui/Button';
 
 export default function ExamsScreen() {
   const router = useRouter();
-  const { availableExams, fetchAvailableExams, isLoading } = useExamStore();
+  const { availableExams, fetchAvailableExams, isLoading, error } = useExamStore();
   const { theme } = useTheme();
 
   useEffect(() => {
@@ -33,6 +33,12 @@ export default function ExamsScreen() {
           <View style={styles.center}>
             <Text style={[styles.loadingText, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.md }]}>
               Loading exams...
+            </Text>
+          </View>
+        ) : error ? (
+          <View style={styles.center}>
+            <Text style={[styles.errorText, { color: theme.colors.error, fontSize: theme.typography.sizes.md }]}>
+              {error}
             </Text>
           </View>
         ) : availableExamsList.length === 0 ? (
@@ -114,6 +120,9 @@ const styles = StyleSheet.create({
   loadingText: {
   },
   emptyText: {
+    textAlign: 'center',
+  },
+  errorText: {
     textAlign: 'center',
   },
   examCard: {

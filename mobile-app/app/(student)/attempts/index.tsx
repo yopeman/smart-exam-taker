@@ -20,7 +20,7 @@ import type { Attempt } from '../../../lib/api/attempts';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function AttemptsScreen() {
-  const { myAttempts, fetchMyAttempts, isLoading } = useAttemptStore();
+  const { myAttempts, fetchMyAttempts, isLoading, error } = useAttemptStore();
   const { theme } = useTheme();
   const [selectedAttemptId, setSelectedAttemptId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -106,6 +106,12 @@ export default function AttemptsScreen() {
           <View style={styles.center}>
             <Text style={[styles.loadingText, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.md }]}>
               Loading attempts...
+            </Text>
+          </View>
+        ) : error ? (
+          <View style={styles.center}>
+            <Text style={[styles.errorText, { color: theme.colors.error, fontSize: theme.typography.sizes.md }]}>
+              {error}
             </Text>
           </View>
         ) : filteredAttempts.length === 0 ? (
@@ -290,6 +296,9 @@ const styles = StyleSheet.create({
   loadingText: {
   },
   emptyText: {
+    textAlign: 'center',
+  },
+  errorText: {
     textAlign: 'center',
   },
   attemptCard: {
