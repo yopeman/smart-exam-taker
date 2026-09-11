@@ -1,8 +1,20 @@
-import { app, BrowserWindow, ipcMain, dialog, safeStorage } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, safeStorage, globalShortcut, Menu } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 
 let mainWindow: BrowserWindow | null = null;
+let examLockdown = false;
+let defaultAppMenu: Electron.Menu | null = null;
+
+const BLOCKED_GLOBAL_ACCELS = [
+  'Alt',
+  'Alt+Tab',
+  'Alt+F4',
+  'Super',
+  'Super+Tab',
+  'Meta',
+  'F11',
+];
 
 class SecureStore {
   private file: string;
@@ -64,6 +76,35 @@ class SecureStore {
 
 const secureStore = new SecureStore();
 
+function applyLockdown(active: boolean) {
+  examLockdown = active;
+  const win = mainWindow;
+  if (!win) return;
+
+  win.setKiosk(active);
+  win.setFullScreen(active);
+  win.setAlwaysOnTop(active, 'screen-saver');
+  if (process.platform !== 'win32') {
+    win.setVisibleOnAllWorkspaces(active, { visibleOnFullScreen: true });
+  } else {
+    win.setVisibleOnAllWorkspaces(false);
+  }
+
+  if (active) {
+    Menu.setApplicationMenu(null);
+    for (const accel of BLOCKED_GLOBAL_ACCELS) {
+      try {
+        globalShortcut.register(accel, () => {});
+      } catch {
+        // best-effort: some window managers reject global registration
+      }
+    }
+  } else {
+    Menu.setApplicationMenu(defaultAppMenu);
+    globalShortcut.unregisterAll();
+  }
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -100,6 +141,31 @@ function createWindow() {
     mainWindow?.webContents.send('window:minimize');
   });
 
+  mainWindow.on('close', (event) => {
+    if (!examLockdown) return;
+    event.preventDefault();
+    mainWindow?.webContents.send('window:close-blocked');
+  });
+
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (!examLockdown) return;
+    const key = (input.key || '').toLowerCase();
+    const blocked =
+      (input.alt && input.key === 'F4') ||
+      input.key === 'F11' ||
+      (input.control && key === 'w') ||
+      input.meta ||
+      input.alt ||
+      input.control ||
+      key === 'escape' ||
+      key === 'f12' ||
+      key === 'f5' ||
+      key === 'super';
+    if (blocked) {
+      event.preventDefault();
+    }
+  });
+
   if (process.env.VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
   } else {
@@ -123,6 +189,9 @@ function registerIpcHandlers() {
     mainWindow?.setFullScreen(Boolean(flag));
   });
   ipcMain.handle('window:is-fullscreen', () => mainWindow?.isFullScreen() ?? false);
+  ipcMain.handle('window:lockdown', (_event, active: boolean) => {
+    applyLockdown(Boolean(active));
+  });
 
   ipcMain.handle(
     'pdf:save-html',
@@ -155,6 +224,7 @@ function registerIpcHandlers() {
 }
 
 app.whenReady().then(() => {
+  defaultAppMenu = Menu.getApplicationMenu();
   registerIpcHandlers();
   createWindow();
 

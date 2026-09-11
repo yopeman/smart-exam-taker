@@ -9,11 +9,13 @@ declare global {
       secureClear: () => Promise<void>;
       setFullScreen: (flag: boolean) => Promise<void>;
       isFullScreen: () => Promise<boolean>;
+      setLockdown: (active: boolean) => Promise<void>;
       savePdfFromHtml: (html: string, defaultName: string) => Promise<{ canceled: boolean; filePath?: string }>;
       onFullScreenChange: (callback: (value: boolean) => void) => void;
       onBlur: (callback: () => void) => void;
       onFocus: (callback: () => void) => void;
       onMinimize: (callback: () => void) => void;
+      onCloseBlocked: (callback: () => void) => () => void;
     };
   }
 }

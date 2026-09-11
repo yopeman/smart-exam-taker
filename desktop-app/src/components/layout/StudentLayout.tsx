@@ -35,12 +35,12 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
             size="small"
             onPress={() => navigate('/dashboard')}
           />
-          <Button
+          {/* <Button
             title="Exams"
             variant={isActive('/exams') ? 'primary' : 'outline'}
             size="small"
             onPress={() => navigate('/exams')}
-          />
+          /> */}
           <Button
             title="Attempts"
             variant={isActive('/attempts') ? 'primary' : 'outline'}

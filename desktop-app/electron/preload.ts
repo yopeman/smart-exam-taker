@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   secureClear: () => ipcRenderer.invoke('secure:clear'),
   setFullScreen: (flag: boolean) => ipcRenderer.invoke('window:set-fullscreen', flag),
   isFullScreen: () => ipcRenderer.invoke('window:is-fullscreen'),
+  setLockdown: (active: boolean) => ipcRenderer.invoke('window:lockdown', active),
   savePdfFromHtml: (html: string, defaultName: string) =>
     ipcRenderer.invoke('pdf:save-html', html, defaultName),
   onFullScreenChange: (callback: (value: boolean) => void) => {
@@ -20,5 +21,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   onMinimize: (callback: () => void) => {
     ipcRenderer.on('window:minimize', () => callback());
+  },
+  onCloseBlocked: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('window:close-blocked', listener);
+    return () => {
+      ipcRenderer.removeListener('window:close-blocked', listener);
+    };
   },
 });

@@ -43,6 +43,14 @@ export const useExamSecurity = ({
     const handleBlur = () => record('app_blurred', 'The exam window lost focus. Avoid switching to other applications.');
     const handleMinimize = () => record('window_minimized', 'The exam window was minimized.');
     const handleFocus = () => {};
+    const handleCloseBlocked = () =>
+      record('close_blocked', 'Closing the app is disabled while the exam is in progress.');
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        record('app_backgrounded', 'The exam window was hidden.');
+      }
+    };
 
     const handleFullScreen = (isFullScreen: boolean) => {
       if (!isFullScreen && useSecurityStore.getState().isSecurityActive) {
@@ -50,6 +58,11 @@ export const useExamSecurity = ({
         api.setFullScreen(true);
       }
     };
+
+    api.setLockdown?.(true);
+    const unsubCloseBlocked = api.onCloseBlocked
+      ? api.onCloseBlocked(handleCloseBlocked)
+      : null;
 
     api.onBlur(handleBlur);
     api.onMinimize(handleMinimize);
@@ -64,15 +77,13 @@ export const useExamSecurity = ({
       }
     }, 1500);
 
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        record('app_backgrounded', 'The exam window was hidden.');
-      }
-    });
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       clearInterval(checkInterval);
-      document.removeEventListener('visibilitychange', handleMinimize);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      unsubCloseBlocked?.();
+      api.setLockdown?.(false);
     };
   }, [enabled, addViolation, setSecurityActive, clearViolations]);
 
