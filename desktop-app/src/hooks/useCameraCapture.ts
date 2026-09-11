@@ -39,11 +39,12 @@ export const useCameraCapture = () => {
   }, []);
 
   useEffect(() => {
-    if (isReady && videoRef.current && streamRef.current) {
-      videoRef.current.srcObject = streamRef.current;
-      videoRef.current.play().catch(() => {});
+    const video = videoRef.current;
+    if (video && streamRef.current && !video.srcObject) {
+      video.srcObject = streamRef.current;
+      video.play().catch(() => {});
     }
-  }, [isReady]);
+  });
 
   useEffect(() => {
     return () => stopCamera();
