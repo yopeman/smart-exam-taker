@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Image, Modal, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Image, Modal, Keyboard, Dimensions } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useExamStore } from '../../../store/examStore';
@@ -183,6 +183,20 @@ function BlankSpaceAnswer({ qn, value, onChange, theme }) {
   );
 }
 
+function FullscreenBlock({ visible, theme }) {
+  if (!visible) return null;
+  return (
+    <View style={[styles.fullscreenOverlay, { backgroundColor: theme.colors.background }]}>
+      <Text style={[styles.fullscreenTitle, { color: theme.colors.text, fontSize: theme.typography.sizes.xl }]}>
+        Fullscreen Required
+      </Text>
+      <Text style={[styles.fullscreenText, { color: theme.colors.textSecondary, fontSize: theme.typography.sizes.md }]}>
+        Please switch to fullscreen mode to continue. The exam is blocked until the screen is fullscreen again.
+      </Text>
+    </View>
+  );
+}
+
 export default function TakeExamScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -217,6 +231,8 @@ export default function TakeExamScreen() {
   const [zoom, setZoom] = useState(1);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [securityWarning, setSecurityWarning] = useState<string | null>(null);
+  const [fullscreenBlocked, setFullscreenBlocked] = useState(false);
+  const fullscreenCheckIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const submittedRef = useRef(false);
 
   const handleSubmit = useCallback(async () => {
@@ -340,8 +356,30 @@ export default function TakeExamScreen() {
       if (step === 'questions') {
         startSecurity();
       }
+
+      if (step !== 'questions') {
+        const checkFullscreen = () => {
+          const screenDim = Dimensions.get('screen');
+          const windowDim = Dimensions.get('window');
+          const windowOffset = 50;
+
+          const isNotFullscreen =
+            screenDim.width > windowDim.width + windowOffset ||
+            screenDim.height > windowDim.height + windowOffset;
+
+          setFullscreenBlocked(isNotFullscreen);
+        };
+
+        checkFullscreen();
+        fullscreenCheckIntervalRef.current = setInterval(checkFullscreen, 1000);
+      }
+
       return () => {
         // off security - when screen is unfocused
+        if (fullscreenCheckIntervalRef.current) {
+          clearInterval(fullscreenCheckIntervalRef.current);
+          fullscreenCheckIntervalRef.current = null;
+        }
         stopSecurity();
       };
     }, [step, startSecurity, stopSecurity])
@@ -452,6 +490,7 @@ export default function TakeExamScreen() {
   if (step === 'info') {
     return (
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <FullscreenBlock visible={fullscreenBlocked} theme={theme} />
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={{ paddingBottom: keyboardHeight + 24 }}
@@ -530,6 +569,7 @@ export default function TakeExamScreen() {
   if (step === 'camera') {
     return (
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <FullscreenBlock visible={fullscreenBlocked} theme={theme} />
         <View style={styles.header}>
           <Text style={[styles.title, { color: theme.colors.text, fontSize: theme.typography.sizes['2xl'] }]}>
             Face Verification
@@ -828,6 +868,27 @@ export default function TakeExamScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  fullscreenOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    zIndex: 100,
+    elevation: 10,
+  },
+  fullscreenTitle: {
+    fontWeight: 'bold',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  fullscreenText: {
+    textAlign: 'center',
+    lineHeight: 22,
   },
   scrollView: {
     flex: 1,
