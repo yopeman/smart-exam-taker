@@ -1,0 +1,60 @@
+{
+  "name": "smart-exam-taker-desktop",
+  "version": "1.0.0",
+  "description": "Desktop client for Smart Exam Taker",
+  "main": "dist-electron/main.js",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "dist": "npm run build && electron-builder"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11",
+    "vite-plugin-electron": "^0.28.8"
+  },
+  "build": {
+    "appId": "com.smartexamtaker.desktop",
+    "productName": "Smart Exam Taker",
+    "files": [
+      "dist/**",
+      "dist-electron/**"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Education"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ]
+    }
+  }
+}

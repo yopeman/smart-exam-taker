@@ -1,0 +1,61 @@
+export const API_CONFIG = {
+  BASE_URL: 'http://localhost:8000/api/v1',
+  TIMEOUT: 30000,
+};
+
+export const API_ENDPOINTS = {
+  AUTH: {
+    REGISTER: '/auth/register',
+    LOGIN: '/auth/login',
+    LOGOUT: '/auth/logout',
+    VERIFY_EMAIL: '/auth/verify-email',
+    RESEND_VERIFICATION: '/auth/resend-verification',
+    FORGOT_PASSWORD: '/auth/forgot-password',
+    RESET_PASSWORD: '/auth/reset-password',
+    ME: '/auth/me',
+    PROFILE: '/auth/profile',
+    DELETE_ACCOUNT: '/auth/account',
+    CHANGE_PASSWORD: '/auth/change-password',
+  },
+  SCHOOLS: {
+    LIST: '/schools',
+    SHARED: '/schools/shared',
+    CREATE: '/schools',
+    GET: (id: string) => `/schools/${id}`,
+    UPDATE: (id: string) => `/schools/${id}`,
+    DELETE: (id: string) => `/schools/${id}`,
+  },
+  EXAMS: {
+    LIST_SCHOOL: (schoolId: string) => `/exams/schools/${schoolId}`,
+    MY_EXAMS: '/exams/me',
+    REACHABLE: '/exams/reachable',
+    SHARED_CREATED: '/exams/shared/created',
+    AVAILABLE: '/exams/available',
+    BY_CODE: (code: string) => `/exams/code/${code}`,
+    STUDENT_GET: (id: string) => `/exams/student/${id}`,
+    GET: (id: string) => `/exams/${id}`,
+    CREATE: (schoolId: string) => `/exams/schools/${schoolId}`,
+    UPDATE: (id: string) => `/exams/${id}`,
+    SUBMIT: (id: string) => `/exams/${id}/submit`,
+    SCHEDULE: (id: string) => `/exams/${id}/schedule`,
+    START: (id: string) => `/exams/${id}/start`,
+    COMPLETE: (id: string) => `/exams/${id}/complete`,
+    CANCEL: (id: string) => `/exams/${id}/cancel`,
+    DELETE: (id: string) => `/exams/${id}`,
+  },
+  ATTEMPTS: {
+    MY_ATTEMPTS: '/attempts/me',
+    REACHABLE: '/attempts/reachable',
+    START: '/attempts/start',
+    SUBMIT: (id: string) => `/attempts/${id}/submit`,
+    GET: (id: string) => `/attempts/${id}`,
+    UPDATE_SCORES: (id: string) => `/attempts/${id}/scores`,
+    LIST_EXAM: (examId: string) => `/attempts/exams/${examId}`,
+  },
+  FILES: {
+    GET: (id: string) => `/files/${id}`,
+  },
+  HEALTH: {
+    CHECK: '/health',
+  },
+};
