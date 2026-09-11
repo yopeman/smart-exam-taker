@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { AppState, AppStateStatus, BackHandler, Alert, Platform } from 'react-native';
+import { AppState, AppStateStatus, BackHandler, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as ScreenCapture from 'expo-screen-capture';
 import { useSecurityStore } from '../store/securityStore';
@@ -10,7 +10,9 @@ export type SecurityViolationType =
   | 'screen_recording_detected'
   | 'dnd_disabled'
   | 'back_navigation_attempted'
-  | 'fullscreen_disabled';
+  | 'fullscreen_disabled'
+  | 'app_blurred'
+  | 'fullscreen_violation';
 
 export interface SecurityViolation {
   type: SecurityViolationType;
@@ -22,7 +24,6 @@ export interface UseExamSecurityOptions {
   enabled?: boolean;
   onViolation?: (violation: SecurityViolation) => void;
   onAutoSubmit?: () => void;
-  focusLossTimeout?: number; // seconds before auto-submit on focus loss
 }
 
 export function useExamSecurity(options: UseExamSecurityOptions = {}) {
@@ -30,7 +31,6 @@ export function useExamSecurity(options: UseExamSecurityOptions = {}) {
     enabled = true,
     onViolation,
     onAutoSubmit,
-    focusLossTimeout = 5,
   } = options;
 
   const router = useRouter();
@@ -40,15 +40,35 @@ export function useExamSecurity(options: UseExamSecurityOptions = {}) {
     clearViolations,
     isSecurityActive,
     setSecurityActive,
-    focusLossCountdown,
-    setFocusLossCountdown,
   } = useSecurityStore();
 
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
-  const focusLossTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [isScreenRecording, setIsScreenRecording] = useState(false);
   const [isDndEnabled, setIsDndEnabled] = useState(true);
   const backHandlerRef = useRef<(() => boolean) | null>(null);
+  const fullscreenCheckIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoSubmittedRef = useRef(false);
+  const onViolationRef = useRef(onViolation);
+  const onAutoSubmitRef = useRef(onAutoSubmit);
+  onViolationRef.current = onViolation;
+  onAutoSubmitRef.current = onAutoSubmit;
+
+  const triggerAutoSubmit = useCallback(
+    (type: 'app_blurred' | 'fullscreen_violation', message: string) => {
+      if (autoSubmittedRef.current) return;
+      autoSubmittedRef.current = true;
+
+      const violation: SecurityViolation = {
+        type,
+        timestamp: Date.now(),
+        message: `${message} - exam submitted`,
+      };
+      addViolation(violation);
+      onViolationRef.current?.(violation);
+      onAutoSubmitRef.current?.();
+    },
+    [addViolation]
+  );
 
   // Prevent screenshot and screen recording
   useEffect(() => {
@@ -71,45 +91,10 @@ export function useExamSecurity(options: UseExamSecurityOptions = {}) {
     };
 
     setupScreenCapture();
-
-    const subscription = ScreenCapture.addScreenshotListener(() => {
-      const violation: SecurityViolation = {
-        type: 'screenshot_attempted',
-        timestamp: Date.now(),
-        message: 'Screenshot attempted - exam will be auto-submitted',
-      };
-      addViolation(violation);
-      onViolation?.(violation);
-      onAutoSubmit?.();
-    });
-
-    const checkScreenRecording = async () => {
-      try {
-        const recording = await ScreenCapture.getScreenCaptureInfo();
-        setIsScreenRecording(recording.isRecording);
-        if (recording.isRecording) {
-          const violation: SecurityViolation = {
-            type: 'screen_recording_detected',
-            timestamp: Date.now(),
-            message: 'Screen recording detected - exam will be auto-submitted',
-          };
-          addViolation(violation);
-          onViolation?.(violation);
-          onAutoSubmit?.();
-        }
-      } catch (error) {
-        console.error('Failed to check screen recording:', error);
-      }
-    };
-
-    const recordingInterval = setInterval(checkScreenRecording, 2000);
-
     return () => {
-      subscription?.remove();
-      clearInterval(recordingInterval);
       cleanupScreenCapture();
     };
-  }, [enabled, isSecurityActive, addViolation, onViolation, onAutoSubmit]);
+  }, [enabled, isSecurityActive]);
 
   // Prevent back navigation (both hardware and gesture)
   useEffect(() => {
@@ -117,7 +102,14 @@ export function useExamSecurity(options: UseExamSecurityOptions = {}) {
 
     // Prevent hardware back button
     const handleHardwareBack = () => {
-      return true; // Prevent default back behavior
+      const violation: SecurityViolation = {
+        type: 'back_navigation_attempted',
+        timestamp: Date.now(),
+        message: 'Back navigation attempted during exam',
+      };
+      addViolation(violation);
+      onViolationRef.current?.(violation);
+      return true;
     };
 
     backHandlerRef.current = handleHardwareBack;
@@ -134,136 +126,74 @@ export function useExamSecurity(options: UseExamSecurityOptions = {}) {
       router.back = originalBack;
       backHandlerRef.current = null;
     };
-  }, [enabled, isSecurityActive, addViolation, onViolation, onAutoSubmit, router]);
+  }, [enabled, isSecurityActive, addViolation, router]);
 
-  // Handle app state changes (focus loss)
+  // Handle app state changes (focus loss) — submit immediately
   useEffect(() => {
     if (!enabled || !isSecurityActive) return;
 
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      console.log('App state changed:', appStateRef.current, '->', nextAppState);
-      
       if (appStateRef.current === 'active' && nextAppState.match(/inactive|background/)) {
-        // App lost focus - start countdown
-        console.log('App lost focus, starting countdown:', focusLossTimeout);
-        setFocusLossCountdown(focusLossTimeout);
-        
-        // Clear any existing timer first
-        if (focusLossTimerRef.current) {
-          clearInterval(focusLossTimerRef.current);
-        }
-        
-        focusLossTimerRef.current = setInterval(() => {
-          setFocusLossCountdown((prev) => {
-            console.log('Countdown:', prev);
-            if (prev <= 1) {
-              // Auto-submit when countdown reaches 0
-              if (focusLossTimerRef.current) {
-                clearInterval(focusLossTimerRef.current);
-                focusLossTimerRef.current = null;
-              }
-              const violation: SecurityViolation = {
-                type: 'app_backgrounded',
-                timestamp: Date.now(),
-                message: 'App left for too long - exam auto-submitted',
-              };
-              addViolation(violation);
-              onViolation?.(violation);
-              onAutoSubmit?.();
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
-      } else if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
-        // App regained focus - clear countdown if still within time
-        console.log('App regained focus, clearing countdown');
-        if (focusLossTimerRef.current) {
-          clearInterval(focusLossTimerRef.current);
-          focusLossTimerRef.current = null;
-        }
-        setFocusLossCountdown(0);
+        triggerAutoSubmit('app_blurred', 'App lost focus');
       }
-      
       appStateRef.current = nextAppState;
     };
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
 
+    const blurSub = AppState.addEventListener('blur', () => {
+      triggerAutoSubmit('app_blurred', 'App lost window focus');
+    });
+
     return () => {
-      console.log('Cleaning up app state listener');
       subscription?.remove();
-      if (focusLossTimerRef.current) {
-        clearInterval(focusLossTimerRef.current);
-        focusLossTimerRef.current = null;
-      }
+      blurSub?.remove();
     };
-  }, [enabled, isSecurityActive, focusLossTimeout, addViolation, onViolation, onAutoSubmit, setFocusLossCountdown]);
+  }, [enabled, isSecurityActive, triggerAutoSubmit]);
 
-  // Check DND status (platform-specific)
-  const checkDndStatus = useCallback(async () => {
-    if (!enabled || !isSecurityActive) return true;
-
-    // DND checking is restricted on both platforms
-    // We'll use a user-verification approach instead
-    if (Platform.OS === 'android') {
-      // For Android, we can't programmatically check DND without native modules
-      // We'll assume it's enabled and show a warning to the user
-      setIsDndEnabled(true);
-      
-      // Show a one-time warning when security starts
-      Alert.alert(
-        'Do Not Disturb Required',
-        'Please enable Do Not Disturb mode in your device settings to ensure a distraction-free exam environment.',
-        [{ text: 'OK', style: 'default' }]
-      );
-      
-      return true;
-    }
-    
-    // iOS DND check is restricted by Apple
-    // We'll assume enabled and prompt user to manually enable it
-    setIsDndEnabled(true);
-    
-    Alert.alert(
-      'Do Not Disturb Required',
-      'Please enable Focus/Do Not Disturb mode in your device settings to ensure a distraction-free exam environment.',
-      [{ text: 'OK', style: 'default' }]
-    );
-    
-    return true;
-  }, [enabled, isSecurityActive]);
-
-  // Enforce fullscreen (platform-specific)
-  const enforceFullscreen = useCallback(async () => {
+  // Check fullscreen status using Dimensions — submit immediately on violation
+  useEffect(() => {
     if (!enabled || !isSecurityActive) return;
 
-    // Note: Fullscreen enforcement requires platform-specific implementations
-    // For Android, you can use react-native-fullscreen or similar
-    // For iOS, you can use react-native-orientation-locker
-    // This is a placeholder for the actual implementation
-  }, [enabled, isSecurityActive]);
+    const checkFullscreen = () => {
+      const screenDim = Dimensions.get('screen');
+      const windowDim = Dimensions.get('window');
+      const windowOffset = 50;
+
+      const isNotFullscreen =
+        screenDim.width > windowDim.width + windowOffset ||
+        screenDim.height > windowDim.height + windowOffset;
+
+      if (isNotFullscreen) {
+        triggerAutoSubmit('fullscreen_violation', 'App is not in fullscreen mode');
+      }
+    };
+
+    checkFullscreen();
+    fullscreenCheckIntervalRef.current = setInterval(checkFullscreen, 1000);
+
+    return () => {
+      if (fullscreenCheckIntervalRef.current) {
+        clearInterval(fullscreenCheckIntervalRef.current);
+        fullscreenCheckIntervalRef.current = null;
+      }
+    };
+  }, [enabled, isSecurityActive, triggerAutoSubmit]);
+
 
   const startSecurity = useCallback(() => {
+    autoSubmittedRef.current = false;
     setSecurityActive(true);
     clearViolations();
-    checkDndStatus();
-    enforceFullscreen();
-  }, [setSecurityActive, clearViolations, checkDndStatus, enforceFullscreen]);
+  }, [setSecurityActive, clearViolations]);
 
   const stopSecurity = useCallback(() => {
     setSecurityActive(false);
-    if (focusLossTimerRef.current) {
-      clearInterval(focusLossTimerRef.current);
-      focusLossTimerRef.current = null;
-    }
-    setFocusLossCountdown(0);
-  }, [setSecurityActive, setFocusLossCountdown]);
+  }, [setSecurityActive]);
 
   return {
     violations,
     isSecurityActive,
-    focusLossCountdown,
     isScreenRecording,
     isDndEnabled,
     startSecurity,

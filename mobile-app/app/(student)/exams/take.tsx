@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Image, Modal, Keyboard } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -16,6 +16,7 @@ import {
 import { apiClient } from '../../../lib/api/client';
 import { Modal as UiModal } from '../../../components/ui/Modal';
 import { useExamSecurity } from '../../../hooks/useExamSecurity';
+import { useFocusEffect } from 'expo-router';
 
 function MCQAnswer({ qn, value, onChange, theme }) {
   const selected: string | null = typeof value === 'string' ? value : null;
@@ -216,11 +217,27 @@ export default function TakeExamScreen() {
   const [zoom, setZoom] = useState(1);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [securityWarning, setSecurityWarning] = useState<string | null>(null);
+  const submittedRef = useRef(false);
+
+  const handleSubmit = useCallback(async () => {
+    if (!currentAttempt || submittedRef.current) return;
+    submittedRef.current = true;
+
+    setIsSubmitting(true);
+    try {
+      await submitAttempt(currentAttempt.id, buildAttemptsPayload(answers) as any);
+      setStep('submit');
+    } catch (err: any) {
+      submittedRef.current = false;
+      Alert.alert('Error', err.message || 'Failed to submit exam');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [currentAttempt, answers, submitAttempt]);
 
   const {
     violations,
     isSecurityActive,
-    focusLossCountdown,
     isScreenRecording,
     isDndEnabled,
     startSecurity,
@@ -228,7 +245,6 @@ export default function TakeExamScreen() {
     clearViolations,
   } = useExamSecurity({
     enabled: true,
-    focusLossTimeout: 5,
     onViolation: (violation) => {
       setSecurityWarning(violation.message);
       Alert.alert('Security Violation', violation.message);
@@ -317,12 +333,19 @@ export default function TakeExamScreen() {
     return () => clearInterval(interval);
   }, [step, timeLeft]);
 
-  // Cleanup security when leaving exam
-  useEffect(() => {
-    return () => {
-      stopSecurity();
-    };
-  }, [stopSecurity]);
+  // Security lifecycle based on screen focus
+  useFocusEffect(
+    useCallback(() => {
+      // on security - when screen is focused
+      if (step === 'questions') {
+        startSecurity();
+      }
+      return () => {
+        // off security - when screen is unfocused
+        stopSecurity();
+      };
+    }, [step, startSecurity, stopSecurity])
+  );
 
   const handleInfoSubmit = async () => {
     const newErrors: Record<string, string> = {};
@@ -404,8 +427,8 @@ export default function TakeExamScreen() {
       );
       const examQs = flattenExamQuestions(currentExam.questions);
       setQuestions(examQs);
+      submittedRef.current = false;
       setStep('questions');
-      startSecurity(); // Start security monitoring when exam begins
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to start exam');
       setStep('info');
@@ -418,21 +441,6 @@ export default function TakeExamScreen() {
     const newAnswers = { ...answers, [questionId]: answer };
     setAnswers(newAnswers);
     updateCurrentAttemptAnswers(newAnswers);
-  };
-
-  const handleSubmit = async () => {
-    if (!currentAttempt) return;
-
-    setIsSubmitting(true);
-    stopSecurity(); // Stop security monitoring when exam is submitted
-    try {
-      await submitAttempt(currentAttempt.id, buildAttemptsPayload(answers) as any);
-      setStep('submit');
-    } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to submit exam');
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const formatTime = (seconds: number) => {
@@ -597,12 +605,10 @@ export default function TakeExamScreen() {
         </View>
 
         {/* Security Status Bar */}
-        {(focusLossCountdown > 0 || violations.length > 0) && (
-          <View style={[styles.securityBar, { backgroundColor: focusLossCountdown > 0 ? theme.colors.error : theme.colors.warning }]}>
+        {violations.length > 0 && (
+          <View style={[styles.securityBar, { backgroundColor: theme.colors.warning }]}>
             <Text style={[styles.securityText, { color: '#FFFFFF', fontSize: theme.typography.sizes.sm }]}>
-              {focusLossCountdown > 0 
-                ? `⚠️ Return to app immediately! Auto-submit in ${focusLossCountdown}s`
-                : `⚠️ Security violations detected: ${violations.length}`}
+              ⚠️ Security violations detected: {violations.length}
             </Text>
           </View>
         )}

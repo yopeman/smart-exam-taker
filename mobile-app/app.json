@@ -38,6 +38,13 @@
       "expo-secure-store",
       "expo-sharing",
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "55c14033-648b-425b-a2b6-e8a25942e3d8"
+      }
+    },
+    "owner": "j16912031"
   }
 }
