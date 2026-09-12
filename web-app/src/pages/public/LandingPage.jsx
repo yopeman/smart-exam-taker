@@ -35,6 +35,12 @@ function LandingPage() {
           </div>
           <div className="hidden md:flex items-center gap-3">
             <Link
+              to="/download"
+              className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 px-4 py-2 rounded-full text-sm font-medium transition-colors"
+            >
+              Download App
+            </Link>
+            <Link
               to="/register"
               className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 px-4 py-2 rounded-full text-sm font-medium transition-colors"
             >

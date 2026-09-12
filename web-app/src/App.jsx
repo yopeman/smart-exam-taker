@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import { ThemeProvider } from './contexts/ThemeContext'
 import LandingPage from './pages/public/LandingPage'
+import DownloadPage from './pages/public/DownloadPage'
 import ProfilePage from './pages/Profile'
 import LoginPage from './pages/public/LoginPage'
 import RegisterPage from './pages/public/RegisterPage'
@@ -28,6 +29,7 @@ function App() {
       <Routes>
       {/* Public */}
       <Route path="/" element={<LandingPage />} />
+      <Route path="/download" element={<DownloadPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/auth/verify-email" element={<VerifyEmailPage />} />
