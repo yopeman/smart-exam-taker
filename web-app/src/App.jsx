@@ -46,7 +46,7 @@ function App() {
 
       {/* Instructor */}
       <Route
-        path="/instructor/dashboard"
+        path="/dashboard"
         element={
           <ProtectedRoute allowedRoles={['instructor']}>
             <InstructorDashboard />
@@ -54,7 +54,7 @@ function App() {
         }
       />
       <Route
-        path="/instructor/schools"
+        path="/schools"
         element={
           <ProtectedRoute allowedRoles={['instructor']}>
             <Schools />
@@ -62,7 +62,7 @@ function App() {
         }
       />
       <Route
-        path="/instructor/invitations"
+        path="/invitations"
         element={
           <ProtectedRoute allowedRoles={['instructor']}>
             <Invitations />
@@ -70,7 +70,7 @@ function App() {
         }
       />
       <Route
-        path="/instructor/exams"
+        path="/exams"
         element={
           <ProtectedRoute allowedRoles={['instructor']}>
             <Exams />
@@ -78,7 +78,7 @@ function App() {
         }
       />
       <Route
-        path="/instructor/attempts"
+        path="/attempts"
         element={
           <ProtectedRoute allowedRoles={['instructor']}>
             <Attempts />
@@ -87,7 +87,7 @@ function App() {
       />
 
       {/* Student */}
-      <Route
+      {/* <Route
         path="/student/dashboard"
         element={
           <ProtectedRoute allowedRoles={['student']}>
@@ -118,7 +118,7 @@ function App() {
             <AttemptResult />
           </ProtectedRoute>
         }
-      />
+      /> */}
 
       {/* Admin — Supabase auth; subscription & overall system management */}
       <Route path="/admin/sb/login" element={<AdminLogin />} />

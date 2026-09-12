@@ -91,11 +91,11 @@ function LoginPage() {
       if (response.user.role === 'admin') {
         navigate('/admin/sb')
       } else if (response.user.role === 'instructor') {
-        navigate('/instructor/dashboard')
-      } else if (response.user.role === 'student') {
-        navigate('/student/dashboard')
-      } else {
         navigate('/dashboard')
+      } else if (response.user.role === 'student') {
+        // navigate('/student/dashboard')
+      } else {
+        // navigate('/dashboard')
       }
     } catch (error) {
       console.error('Login error:', error)

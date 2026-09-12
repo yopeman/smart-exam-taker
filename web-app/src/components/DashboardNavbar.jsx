@@ -24,7 +24,7 @@ function DashboardNavbar({ title, userEmail, onLogout, showProfileButtons = true
             <ThemeToggle />
             {user?.role && (
               <button
-                onClick={() => navigate(`/${user.role}/dashboard`)}
+                onClick={() => navigate(user.role === 'instructor' ? '/dashboard' : `/${user.role}/dashboard`)}
                 className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
               >
                 Home

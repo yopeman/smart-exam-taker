@@ -52,7 +52,7 @@ function ProtectedRoute({ children, allowedRoles = [] }) {
       if (userRole === 'admin') {
         return <Navigate to="/admin/sb" replace />
       } else if (userRole === 'instructor') {
-        return <Navigate to="/instructor/dashboard" replace />
+        return <Navigate to="/dashboard" replace />
       } else if (userRole === 'student') {
         return <Navigate to="/student/dashboard" replace />
       }
