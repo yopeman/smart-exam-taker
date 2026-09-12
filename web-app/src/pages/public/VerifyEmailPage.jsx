@@ -4,10 +4,26 @@ import { CheckCircle, XCircle, ArrowRight, Mail, RefreshCw } from 'lucide-react'
 import { apiFetch } from '../../lib/apiClient'
 import ThemeToggle from '../../components/ThemeToggle'
 
+const MOBILE_APP_SCHEME = 'smart-exam-taker'
+const DESKTOP_APP_SCHEME = 'smart-exam-taker-desktop'
+
+function isMobileDevice() {
+  const ua = navigator.userAgent || navigator.vendor || window.opera || ''
+  return /(Android|webOS|iPhone|iPad|iPod|BlackBerry|Windows Phone|Opera Mini|IEMobile|Mobile)/i.test(ua)
+}
+
+function buildAppLoginUrl(status, detail) {
+  const query = new URLSearchParams({ status, detail }).toString()
+  const scheme = isMobileDevice() ? MOBILE_APP_SCHEME : DESKTOP_APP_SCHEME
+  return `${scheme}://login?${query}`
+}
+
 function VerifyEmailPage() {
   const [searchParams] = useSearchParams()
   const status = searchParams.get('status')
   const detail = searchParams.get('detail')
+  const role = searchParams.get('role')
+  const isStudent = role === 'student'
   const [isResending, setIsResending] = useState(false)
   const [resendMessage, setResendMessage] = useState('')
   const [email, setEmail] = useState('')
@@ -38,6 +54,12 @@ function VerifyEmailPage() {
     } finally {
       setIsResending(false)
     }
+  }
+
+  const handleGoToLogin = (e) => {
+    if (!isStudent) return
+    e.preventDefault()
+    window.location.href = buildAppLoginUrl(status, detail)
   }
 
   return (
@@ -71,6 +93,7 @@ function VerifyEmailPage() {
           {isSuccess ? (
             <Link
               to="/login"
+              onClick={handleGoToLogin}
               className="inline-flex items-center gap-2 bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 transition-all"
             >
               Go to Login

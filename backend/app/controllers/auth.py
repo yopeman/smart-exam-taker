@@ -59,20 +59,20 @@ def register(payload: RegisterRequest, db: Session) -> User:
     return user
 
 
-def verify_email(token: str, db: Session) -> tuple[str, str]:
+def verify_email(token: str, db: Session) -> tuple[str, str, User | None]:
     try:
         user_id = decode_token(token, expected_type="verify")
     except HTTPException:
-        return ("failure", "The verification link is invalid or has expired")
+        return ("failure", "The verification link is invalid or has expired", None)
 
     user = db.get(User, user_id)
     if user is None or user.is_deleted:
-        return ("failure", "User not found")
+        return ("failure", "User not found", None)
 
     user.is_verified = True
     db.commit()
 
-    return ("success", "Email verified successfully")
+    return ("success", "Email verified successfully", user)
 
 
 def resend_verification_email(payload: ResendVerificationRequest, db: Session) -> MessageResponse:

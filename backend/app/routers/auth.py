@@ -23,8 +23,11 @@ from app.schemas.user import (
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-def _form_redirect(status_text: str, detail: str) -> RedirectResponse:
-    url = f"{settings.FRONTEND_BASE_URL}/auth/verify-email?status={status_text}&detail={detail}"
+def _form_redirect(status_text: str, detail: str, role: str | None = None) -> RedirectResponse:
+    query = f"status={status_text}&detail={detail}"
+    if role is not None:
+        query += f"&role={role}"
+    url = f"{settings.FRONTEND_BASE_URL}/auth/verify-email?{query}"
     return RedirectResponse(url=url)
 
 
@@ -40,8 +43,9 @@ def verify_email(
     token: str = Query(...),
     db: Session = Depends(get_db),
 ):
-    status_text, detail = auth_controller.verify_email(token, db)
-    return _form_redirect(status_text, detail)
+    status_text, detail, user = auth_controller.verify_email(token, db)
+    role = user.role.value if user is not None else None
+    return _form_redirect(status_text, detail, role)
 
 
 @router.post("/resend-verification", response_model=MessageResponse)

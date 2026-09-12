@@ -6,6 +6,8 @@ let mainWindow: BrowserWindow | null = null;
 let examLockdown = false;
 let defaultAppMenu: Electron.Menu | null = null;
 
+const DESKTOP_SCHEME = 'smart-exam-taker-desktop';
+
 const BLOCKED_GLOBAL_ACCELS = [
   'Alt',
   'Alt+Tab',
@@ -75,6 +77,42 @@ class SecureStore {
 }
 
 const secureStore = new SecureStore();
+
+function getDeepLink(argv: string[]) {
+  return argv.find((arg) => arg.startsWith(`${DESKTOP_SCHEME}://`));
+}
+
+function resolveDeepLink(url: string) {
+  const parsed = new URL(url);
+  const hash = `${parsed.pathname}${parsed.search}`;
+  const devServer = process.env.VITE_DEV_SERVER_URL;
+  if (devServer) {
+    return () => mainWindow?.loadURL(`${devServer}#${hash}`);
+  }
+  return () =>
+    mainWindow?.loadFile(path.join(__dirname, '../dist/index.html'), { hash });
+}
+
+function openDeepLink(url: string) {
+  const win = mainWindow;
+  if (!win) return;
+  resolveDeepLink(url)();
+  if (win.isMinimized()) win.restore();
+  win.show();
+  win.focus();
+}
+
+function registerProtocolClient() {
+  if (process.defaultApp) {
+    if (process.argv.length >= 2) {
+      app.setAsDefaultProtocolClient(DESKTOP_SCHEME, process.execPath, [
+        path.resolve(process.argv[1]),
+      ]);
+    }
+  } else {
+    app.setAsDefaultProtocolClient(DESKTOP_SCHEME);
+  }
+}
 
 function applyLockdown(active: boolean) {
   examLockdown = active;
@@ -166,7 +204,10 @@ function createWindow() {
     }
   });
 
-  if (process.env.VITE_DEV_SERVER_URL) {
+  const initialDeepLink = getDeepLink(process.argv);
+  if (initialDeepLink) {
+    openDeepLink(initialDeepLink);
+  } else if (process.env.VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
@@ -237,16 +278,41 @@ function setupMediaPermissions() {
   ses.setPermissionCheckHandler((_webContents, permission) => permission === 'media');
 }
 
-app.whenReady().then(() => {
-  defaultAppMenu = Menu.getApplicationMenu();
-  setupMediaPermissions();
-  registerIpcHandlers();
-  createWindow();
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (_event, argv) => {
+    const deepLink = getDeepLink(argv);
+    if (deepLink) {
+      openDeepLink(deepLink);
+      return;
+    }
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    } else {
+      createWindow();
+    }
   });
-});
+
+  app.on('open-url', (event, url) => {
+    event.preventDefault();
+    if (url.startsWith(`${DESKTOP_SCHEME}://`)) openDeepLink(url);
+  });
+
+  app.whenReady().then(() => {
+    defaultAppMenu = Menu.getApplicationMenu();
+    registerProtocolClient();
+    setupMediaPermissions();
+    registerIpcHandlers();
+    createWindow();
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
+  });
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

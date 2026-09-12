@@ -32,6 +32,14 @@
   "build": {
     "appId": "com.smartexamtaker.desktop",
     "productName": "Smart Exam Taker",
+    "protocols": [
+      {
+        "name": "Smart Exam Taker Desktop",
+        "schemes": [
+          "smart-exam-taker-desktop"
+        ]
+      }
+    ],
     "files": [
       "dist/**",
       "dist-electron/**"
