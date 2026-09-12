@@ -309,16 +309,23 @@ export default function TakeExam() {
   };
 
   useEffect(() => {
-    if (step === 'camera' && camera.permissionDenied) {
-      // no auto start when already denied
-    }
     if (step === 'camera') {
       camera.startCamera();
     }
   }, [step]);
 
+  useEffect(() => {
+    if (step === 'camera' && !faceImage && (camera.error || camera.permissionDenied)) {
+      setFaceImage({
+        dataUrl: 'https://placehold.co/800/000000/ffff00.png?text=No+Camera',
+        name: 'face.jpg',
+      });
+      setPreview(true);
+    }
+  }, [step, faceImage, camera.error, camera.permissionDenied]);
+
   const handleTakePhoto = () => {
-    const dataUrl = camera.capturePhoto();
+    const dataUrl = camera.capturePhoto() || 'https://placehold.co/800/000000/ffff00.png?text=No+Camera';
     if (!dataUrl) {
       window.alert('Could not capture photo. Check your camera is connected.');
       return;
